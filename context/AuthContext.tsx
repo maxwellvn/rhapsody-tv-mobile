@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, AuthResponse } from '@/types/api.types';
-import { storage } from '@/utils/storage';
+import { AuthResponse, User } from "@/types/api.types";
+import { storage } from "@/utils/storage";
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface AuthContextType {
   user: User | null;
@@ -39,7 +45,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(userData);
       }
     } catch (error) {
-      console.error('Error checking auth status:', error);
+      console.error("Error checking auth status:", error);
     } finally {
       setIsLoading(false);
     }
@@ -48,10 +54,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (authData: AuthResponse) => {
     try {
       // Save tokens
-      await storage.saveTokens(
-        authData.tokens.accessToken,
-        authData.tokens.refreshToken
-      );
+      await storage.saveTokens(authData.accessToken, authData.refreshToken);
 
       // Save user data
       await storage.saveUserData(authData.user);
@@ -59,7 +62,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Update state
       setUser(authData.user);
     } catch (error) {
-      console.error('Error during login:', error);
+      console.error("Error during login:", error);
       throw error;
     }
   };
@@ -67,15 +70,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = async () => {
     try {
       // Clear tokens and user data
-      await Promise.all([
-        storage.clearTokens(),
-        storage.clearUserData(),
-      ]);
+      await Promise.all([storage.clearTokens(), storage.clearUserData()]);
 
       // Update state
       setUser(null);
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
       throw error;
     }
   };
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(userData);
       }
     } catch (error) {
-      console.error('Error refreshing user data:', error);
+      console.error("Error refreshing user data:", error);
     }
   };
 
@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

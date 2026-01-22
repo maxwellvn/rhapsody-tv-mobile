@@ -1,48 +1,30 @@
-import { FONTS } from '@/styles/global';
-import { homepageService } from '@/services/homepage.service';
-import { LiveNowProgram } from '@/types/api.types';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Badge } from '../badge';
-import { LiveNowSkeleton } from '../skeleton';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { wp, hp, fs, spacing, borderRadius, dimensions } from '@/utils/responsive';
+import { useLiveNow } from "@/hooks/queries/useHomepageQueries";
+import { FONTS } from "@/styles/global";
+import {
+  borderRadius,
+  dimensions,
+  fs,
+  hp,
+  spacing,
+  wp,
+} from "@/utils/responsive";
+import { useRouter } from "expo-router";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Badge } from "../badge";
+import { LiveNowSkeleton } from "../skeleton";
 
 export function LiveNowSection() {
   const router = useRouter();
-  const [liveNowData, setLiveNowData] = useState<LiveNowProgram | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchLiveNow();
-  }, []);
-
-  const fetchLiveNow = async () => {
-    try {
-      setIsLoading(true);
-      const response = await homepageService.getLiveNow();
-      
-      if (response.success && response.data) {
-        setLiveNowData(response.data);
-      } else {
-        // No data available - will show mock data
-        setLiveNowData(null);
-      }
-    } catch (err: any) {
-      console.error('Error fetching live now:', err);
-      // On error, show mock data instead
-      setLiveNowData(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: liveNowData, isLoading } = useLiveNow();
 
   const handleLivePress = () => {
     if (liveNowData?.videoId) {
-      router.push(`/live-video?id=${liveNowData.videoId}&liveStreamId=${liveNowData.liveStreamId}`);
+      router.push(
+        `/live-video?id=${liveNowData.videoId}&liveStreamId=${liveNowData.liveStreamId}`,
+      );
     } else {
       // Navigate to live video page even for mock data
-      router.push('/live-video');
+      router.push("/live-video");
     }
   };
 
@@ -65,7 +47,7 @@ export function LiveNowSection() {
         {/* Show original mock data */}
         <Pressable onPress={handleLivePress} style={styles.videoCard}>
           <Image
-            source={require('@/assets/images/carusel-2.png')}
+            source={require("@/assets/images/carusel-2.png")}
             style={styles.thumbnail}
             resizeMode="cover"
           />
@@ -91,7 +73,7 @@ export function LiveNowSection() {
           source={
             liveNowData.channel.coverImageUrl
               ? { uri: liveNowData.channel.coverImageUrl }
-              : require('@/assets/images/carusel-2.png')
+              : require("@/assets/images/carusel-2.png")
           }
           style={styles.thumbnail}
           resizeMode="cover"
@@ -123,63 +105,63 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   title: {
     fontSize: dimensions.isTablet ? fs(24) : fs(20),
     fontFamily: FONTS.bold,
-    color: '#000000',
+    color: "#000000",
     marginRight: spacing.xs,
   },
   redDot: {
     width: wp(8),
     height: wp(8),
     borderRadius: wp(4),
-    backgroundColor: '#FF0000',
+    backgroundColor: "#FF0000",
   },
   videoCard: {
-    position: 'relative',
+    position: "relative",
     borderRadius: borderRadius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   thumbnail: {
-    width: '100%',
+    width: "100%",
     height: dimensions.isTablet ? hp(250) : hp(200),
   },
   liveBadgeContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: spacing.md,
     left: spacing.md,
     zIndex: 2,
   },
   infoOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     padding: spacing.lg,
     zIndex: 1,
   },
   programTitle: {
     fontSize: dimensions.isTablet ? fs(20) : fs(18),
     fontFamily: FONTS.bold,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     marginBottom: spacing.xs,
   },
   programDescription: {
     fontSize: dimensions.isTablet ? fs(16) : fs(14),
     fontFamily: FONTS.regular,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     opacity: 0.9,
     marginBottom: spacing.sm,
   },
   channelName: {
     fontSize: dimensions.isTablet ? fs(14) : fs(12),
     fontFamily: FONTS.semibold,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     opacity: 0.8,
   },
   noDataContainer: {
@@ -189,7 +171,7 @@ const styles = StyleSheet.create({
   noDataText: {
     fontSize: dimensions.isTablet ? fs(16) : fs(14),
     fontFamily: FONTS.regular,
-    color: '#666666',
-    textAlign: 'center',
+    color: "#666666",
+    textAlign: "center",
   },
 });

@@ -1,13 +1,23 @@
-import { AuthTabs } from '@/components/auth-tabs';
-import Loader from '@/components/loader';
-import { useToast } from '@/context/ToastContext';
-import { styles } from '@/styles/register.styles';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { AuthTabs } from "@/components/auth-tabs";
+import Loader from "@/components/loader";
+import { useToast } from "@/context/ToastContext";
+import { useRegister } from "@/hooks/mutations";
+import { styles } from "@/styles/register.styles";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -15,13 +25,16 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  
+
   // Form fields
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Use Tanstack Query register mutation
+  const registerMutation = useRegister();
+  const isLoading = registerMutation.isPending;
 
   const handleBack = () => {
     router.back();
@@ -29,108 +42,95 @@ export default function RegisterScreen() {
 
   const validateForm = () => {
     if (!fullName.trim()) {
-      showError('Please enter your full name');
+      showError("Please enter your full name");
       return false;
     }
-    
+
     if (!email.trim()) {
-      showError('Please enter your email address');
+      showError("Please enter your email address");
       return false;
     }
-    
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      showError('Please enter a valid email address');
+      showError("Please enter a valid email address");
       return false;
     }
-    
+
     if (!password) {
-      showError('Please enter a password');
+      showError("Please enter a password");
       return false;
     }
-    
+
     if (password.length < 6) {
-      showError('Password must be at least 6 characters long');
+      showError("Password must be at least 6 characters long");
       return false;
     }
-    
+
     if (password !== confirmPassword) {
-      showError('Passwords do not match');
+      showError("Passwords do not match");
       return false;
     }
-    
+
     return true;
   };
 
   const handleRegister = async () => {
-    // Commented out for testing - navigate directly to homepage
-    // if (!validateForm()) {
-    //   return;
-    // }
-    
-    // setIsLoading(true);
-    
-    // try {
-    //   const userEmail = email.trim().toLowerCase();
-      
-    //   // Step 1: Register user
-    //   const response = await authService.register({
-    //     fullName: fullName.trim(),
-    //     email: userEmail,
-    //     password,
-    //   });
-      
-    //   if (response.success) {
-    //     // Save tokens to storage
-    //     await storage.saveTokens(
-    //       response.data.accessToken,
-    //       response.data.refreshToken
-    //     );
-        
-    //     // Save user data
-    //     await storage.saveUserData(response.data.user);
-        
-    //     // Navigate directly to home page (bypassing email verification for testing)
-    //     router.replace('/(tabs)');
-        
-    //     showSuccess(response.message || 'Registration successful!');
-    //   }
-    // } catch (error: any) {
-    //   console.error('Registration error:', error);
-    //   showError(error.message || 'An error occurred during registration. Please try again.');
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    if (!validateForm()) {
+      return;
+    }
 
-    // Navigate directly to homepage regardless of any validation or API calls
-    router.replace('/(tabs)');
+    registerMutation.mutate(
+      {
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      },
+      {
+        onSuccess: () => {
+          showSuccess("Registration successful! Please verify your email.");
+          // Navigate to verify email screen
+          router.push({
+            pathname: "/(auth)/verify-email",
+            params: { email: email.trim().toLowerCase() },
+          });
+        },
+        onError: (error: any) => {
+          console.error("Registration error:", error);
+
+          if (error.statusCode === 409) {
+            showError(
+              "An account with this email already exists. Please sign in instead.",
+            );
+          } else {
+            showError(
+              error.message ||
+              "An error occurred during registration. Please try again.",
+            );
+          }
+        },
+      },
+    );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar style="light" />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-      
-      {/* Blue Background Section */}
-      <View style={styles.blueSection} />
-      
+        {/* Blue Background Section */}
+        <View style={styles.blueSection} />
+
         {/* Back Button */}
-        <Pressable
-          onPress={handleBack}
-          style={styles.backButton}
-          hitSlop={8}
-        >
+        <Pressable onPress={handleBack} style={styles.backButton} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color="#FAFAFA" />
         </Pressable>
 
         {/* Welcome Text */}
-        <Text style={styles.welcomeText}>
-          Welcome to{'\n'}Rhapsody TV
-        </Text>
+        <Text style={styles.welcomeText}>Welcome to{"\n"}Rhapsody TV</Text>
 
         {/* Auth Tabs */}
         <View style={styles.tabsContainer}>
@@ -138,8 +138,8 @@ export default function RegisterScreen() {
         </View>
 
         {/* Form Container */}
-        <ScrollView 
-          style={styles.formContainer} 
+        <ScrollView
+          style={styles.formContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 20 }}
@@ -147,12 +147,15 @@ export default function RegisterScreen() {
           {/* Full Name */}
           <Text style={styles.label}>Full Name</Text>
           <TextInput
-            style={[styles.input, focusedField === 'fullName' && styles.inputFocused]}
+            style={[
+              styles.input,
+              focusedField === "fullName" && styles.inputFocused,
+            ]}
             placeholder="Full Name"
             placeholderTextColor="#999"
             value={fullName}
             onChangeText={setFullName}
-            onFocus={() => setFocusedField('fullName')}
+            onFocus={() => setFocusedField("fullName")}
             onBlur={() => setFocusedField(null)}
             autoCorrect={false}
             editable={!isLoading}
@@ -161,7 +164,10 @@ export default function RegisterScreen() {
           {/* Email Address */}
           <Text style={styles.label}>Email Address</Text>
           <TextInput
-            style={[styles.input, focusedField === 'email' && styles.inputFocused]}
+            style={[
+              styles.input,
+              focusedField === "email" && styles.inputFocused,
+            ]}
             placeholder="Email Address"
             placeholderTextColor="#999"
             value={email}
@@ -169,14 +175,19 @@ export default function RegisterScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            onFocus={() => setFocusedField('email')}
+            onFocus={() => setFocusedField("email")}
             onBlur={() => setFocusedField(null)}
             editable={!isLoading}
           />
 
           {/* Password */}
           <Text style={styles.label}>Password</Text>
-          <View style={[styles.passwordContainer, focusedField === 'password' && styles.passwordContainerFocused]}>
+          <View
+            style={[
+              styles.passwordContainer,
+              focusedField === "password" && styles.passwordContainerFocused,
+            ]}
+          >
             <TextInput
               style={styles.passwordInput}
               placeholder="Password"
@@ -186,7 +197,7 @@ export default function RegisterScreen() {
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
-              onFocus={() => setFocusedField('password')}
+              onFocus={() => setFocusedField("password")}
               onBlur={() => setFocusedField(null)}
               editable={!isLoading}
             />
@@ -197,7 +208,7 @@ export default function RegisterScreen() {
               disabled={isLoading}
             >
               <Ionicons
-                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                name={showPassword ? "eye-outline" : "eye-off-outline"}
                 size={24}
                 color="#999"
               />
@@ -206,7 +217,13 @@ export default function RegisterScreen() {
 
           {/* Confirm Password */}
           <Text style={styles.label}>Confirm Password</Text>
-          <View style={[styles.passwordContainer, focusedField === 'confirmPassword' && styles.passwordContainerFocused]}>
+          <View
+            style={[
+              styles.passwordContainer,
+              focusedField === "confirmPassword" &&
+              styles.passwordContainerFocused,
+            ]}
+          >
             <TextInput
               style={styles.passwordInput}
               placeholder="Confirm Password"
@@ -216,7 +233,7 @@ export default function RegisterScreen() {
               secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
               autoCorrect={false}
-              onFocus={() => setFocusedField('confirmPassword')}
+              onFocus={() => setFocusedField("confirmPassword")}
               onBlur={() => setFocusedField(null)}
               editable={!isLoading}
             />
@@ -227,7 +244,7 @@ export default function RegisterScreen() {
               disabled={isLoading}
             >
               <Ionicons
-                name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
                 size={24}
                 color="#999"
               />
@@ -235,14 +252,17 @@ export default function RegisterScreen() {
           </View>
 
           {/* Register Button */}
-          <Pressable 
-            style={[styles.registerButton, isLoading && styles.registerButtonDisabled]}
+          <Pressable
+            style={[
+              styles.registerButton,
+              isLoading && styles.registerButtonDisabled,
+            ]}
             onPress={handleRegister}
             disabled={isLoading}
           >
             <Text style={styles.registerButtonText}>Register</Text>
           </Pressable>
-          
+
           {/* Full Screen Loader Overlay */}
           {isLoading && <Loader />}
 
@@ -251,9 +271,11 @@ export default function RegisterScreen() {
 
           {/* KingsChat Button */}
           <Pressable style={styles.kingschatButton}>
-            <Text style={styles.kingschatButtonText}>Sign In with KingsChat</Text>
+            <Text style={styles.kingschatButtonText}>
+              Sign In with KingsChat
+            </Text>
             <Image
-              source={require('@/assets/Icons/KC.png')}
+              source={require("@/assets/Icons/KC.png")}
               style={styles.kingschatIcon}
               resizeMode="contain"
             />
