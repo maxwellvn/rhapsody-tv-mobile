@@ -169,7 +169,7 @@ export interface ChannelDetail {
 }
 
 export interface ChannelVideosResponse {
-  videos: Video[];
+  videos: ChannelVideoListItemDto[];
   total: number;
   page: number;
   limit: number;
@@ -189,6 +189,25 @@ export interface ChannelSchedule {
   bookmarkCount: number;
   videoId: string;
   liveStreamId: string;
+}
+
+export interface ChannelVideoListItemDto {
+  id: string;
+  title: string;
+  description?: string;
+  playbackUrl: string;
+  thumbnailUrl?: string;
+  durationSeconds?: number;
+  viewCount: number;
+  publishedAt?: string;
+}
+
+export interface ChannelVideosPaginatedDto {
+  videos: ChannelVideoListItemDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 /**
@@ -415,4 +434,164 @@ export interface HomepageFeaturedVideo {
     logoUrl: string;
     coverImageUrl: string;
   };
+}
+
+/**
+ * VOD (Video on Demand) Types
+ */
+
+export interface VodVideoResponseDto {
+  id: string;
+  channelId: string;
+  title: string;
+  description: string;
+  playbackUrl: string;
+  thumbnailUrl: string;
+  durationSeconds: number;
+  viewCount: number;
+  likeCount: number;
+  isLiked: boolean;
+  isDisliked: boolean;
+  commentCount: number;
+  channel: {
+    id: string;
+    name: string;
+    slug: string;
+    logoUrl: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VodPaginatedVideosResponseDto {
+  videos: VodVideoResponseDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface VodCommentResponseDto {
+  id: string;
+  videoId: string;
+  userId: string;
+  content: string;
+  likes: number;
+  isLiked: boolean;
+  replyCount: number;
+  parentId?: string;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  replies?: VodCommentResponseDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VodPaginatedCommentsResponseDto {
+  comments: VodCommentResponseDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface CreateCommentDto {
+  content: string;
+  parentId?: string;
+}
+
+/**
+ * Notification Types (from API docs)
+ */
+
+export interface NotificationDto {
+  id: string;
+  type:
+    | "channel_new_video"
+    | "channel_go_live"
+    | "channel_new_program"
+    | "comment_liked"
+    | "comment_replied";
+  title: string;
+  body: string;
+  data?: Record<string, any>;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface PaginatedNotificationsDto {
+  notifications: NotificationDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Subscription Types (from API docs)
+ */
+
+export interface ChannelSubscriptionResponseDto {
+  id: string;
+  channelId: string;
+  isSubscribed: boolean;
+  notifyOnNewVideo: boolean;
+  notifyOnGoLive: boolean;
+  notifyOnNewProgram: boolean;
+}
+
+export interface UpdateChannelSubscriptionSettingsDto {
+  notifyOnNewVideo?: boolean;
+  notifyOnGoLive?: boolean;
+  notifyOnNewProgram?: boolean;
+}
+
+/**
+ * Update Progress Types
+ */
+
+export interface UpdateProgressDto {
+  videoId: string;
+  progressSeconds: number;
+  durationSeconds: number;
+}
+
+/**
+ * Channel Details Types (from API docs)
+ */
+
+export interface ChannelDetailsDto {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  logoUrl?: string;
+  coverImageUrl?: string;
+  websiteUrl?: string;
+  subscriberCount: number;
+  videoCount: number;
+  joinedAt: string;
+}
+
+export interface ChannelDetailsResponseDto {
+  channel: ChannelDetailsDto;
+  latestVideos: ChannelVideoListItemDto[];
+}
+
+export interface ChannelProgramDto {
+  id: string;
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  durationInMinutes: number;
+  category: string;
+  isLive: boolean;
+  viewerCount: number;
+  bookmarkCount: number;
+  videoId: string;
+  liveStreamId: string;
 }

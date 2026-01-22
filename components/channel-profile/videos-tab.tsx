@@ -1,6 +1,7 @@
 import { HorizontalVideoCard } from "@/components/program-profile/horizontal-video-card";
 import { useChannelVideos } from "@/hooks/queries/useChannelQueries";
 import { FONTS } from "@/styles/global";
+import { formatDuration } from "@/utils/formatters";
 import { fs, hp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -40,12 +41,12 @@ export function VideosTab({ slug }: VideosTabProps) {
         videos.map((video) => (
           <HorizontalVideoCard
             key={video.id}
-            thumbnailSource={{ uri: video.thumbnail }}
-            duration={`${Math.floor(video.duration / 60)}:${(video.duration % 60).toString().padStart(2, "0")}`}
+            thumbnailSource={{ uri: video.thumbnailUrl || "" }}
+            duration={formatDuration(video.durationSeconds)}
             title={video.title}
-            channelName={video.channel.name} // Assuming video object has channel name or we can pass it
-            viewCount={`${video.views || 0} views`}
-            timeAgo={video.uploadDate}
+            channelName={slug}
+            viewCount={`${video.viewCount ?? 0} views`}
+            timeAgo={video.publishedAt || ""}
             onPress={() => handleVideoPress(video.id)}
             onMenuPress={() => handleMenuPress(video.id)}
           />

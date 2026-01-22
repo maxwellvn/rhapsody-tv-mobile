@@ -51,6 +51,37 @@ export const API_ENDPOINTS = {
     STREAM: (id: string) => `/videos/${id}/stream`,
   },
 
+  // VOD (Video on Demand)
+  VOD: {
+    LIST: "/vod",
+    DETAILS: (id: string) => `/vod/${id}`,
+    LIKE: (id: string) => `/vod/${id}/like`,
+    LIKE_STATUS: (id: string) => `/vod/${id}/like-status`,
+    COMMENTS: (id: string) => `/vod/${id}/comments`,
+    COMMENT_REPLY: (videoId: string, commentId: string) =>
+      `/vod/${videoId}/comments/${commentId}/reply`,
+    COMMENT_DELETE: (commentId: string) => `/vod/comments/${commentId}`,
+    COMMENT_LIKE: (commentId: string) => `/vod/comments/${commentId}/like`,
+    COMMENT_LIKE_STATUS: (commentId: string) =>
+      `/vod/comments/${commentId}/like-status`,
+  },
+
+  // Notifications
+  NOTIFICATIONS: {
+    LIST: "/notifications",
+    READ: (id: string) => `/notifications/${id}/read`,
+    READ_ALL: "/notifications/read-all",
+  },
+
+  // Subscriptions
+  SUBSCRIPTIONS: {
+    SUBSCRIBE: (channelId: string) => `/subscriptions/channels/${channelId}`,
+    UNSUBSCRIBE: (channelId: string) =>
+      `/subscriptions/channels/${channelId}/unsubscribe`,
+    SETTINGS: (channelId: string) =>
+      `/subscriptions/channels/${channelId}/settings`,
+  },
+
   // Channels
   CHANNELS: {
     LIST: "/channels",
@@ -93,14 +124,6 @@ export const API_ENDPOINTS = {
     LIST: "/downloads",
     START: "/downloads/start",
     DELETE: (id: string) => `/downloads/${id}`,
-  },
-
-  // Notifications
-  NOTIFICATIONS: {
-    LIST: "/notifications",
-    READ: (id: string) => `/notifications/${id}/read`,
-    SETTINGS: "/notifications/settings",
-    UPDATE_SETTINGS: "/notifications/settings/update",
   },
 
   // Settings

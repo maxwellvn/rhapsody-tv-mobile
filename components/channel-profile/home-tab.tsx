@@ -2,6 +2,7 @@ import { VideoRecommendationCard } from "@/components/channel-profile/video-reco
 import { HorizontalVideoCard } from "@/components/program-profile/horizontal-video-card";
 import { FONTS } from "@/styles/global";
 import { ChannelDetail } from "@/types/api.types";
+import { formatDuration } from "@/utils/formatters";
 import { fs, hp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
@@ -38,7 +39,7 @@ export function HomeTab({ detail }: HomeTabProps) {
           viewCount={`${latestVideos[0].views || 0} views`}
           timeAgo={latestVideos[0].uploadDate}
           isLive={false} // Would need real data
-          duration={`${Math.floor(latestVideos[0].duration / 60)}:${(latestVideos[0].duration % 60).toString().padStart(2, "0")}`}
+          duration={formatDuration(latestVideos[0].duration)}
           onPress={() => handleVideoPress(latestVideos[0].id)}
           onMenuPress={() => handleMenuPress(latestVideos[0].id)}
         />
@@ -52,7 +53,7 @@ export function HomeTab({ detail }: HomeTabProps) {
           <HorizontalVideoCard
             key={video.id}
             thumbnailSource={{ uri: video.thumbnail }}
-            duration={`${Math.floor(video.duration / 60)}:${(video.duration % 60).toString().padStart(2, "0")}`}
+            duration={formatDuration(video.duration)}
             title={video.title}
             channelName={channel.name}
             viewCount={`${video.views || 0} views`}
