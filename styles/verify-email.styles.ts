@@ -1,0 +1,108 @@
+import { fs, hp, spacing, wp } from '@/utils/responsive';
+import { StyleSheet } from 'react-native';
+import { FONTS } from './global';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  blueSection: {
+    position: 'absolute',
+    top: -37,
+    left: 0,
+    right: 0,
+    height: hp(240),
+    backgroundColor: '#0000FF',
+  },
+  backButton: {
+    position: 'absolute',
+    top: hp(20),
+    left: spacing.md,
+    width: wp(40),
+    height: hp(40),
+    backgroundColor: 'transparent',
+    borderColor: '#FAFAFA',
+    borderWidth: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  headerText: {
+    position: 'absolute',
+    top: hp(90),
+    left: spacing.xl,
+    right: spacing.xl,
+    color: '#FFFFFF',
+    fontSize: fs(42),
+    fontFamily: FONTS.bold,
+    lineHeight: fs(50),
+  },
+  contentContainer: {
+    paddingTop: hp(220),
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    paddingBottom: hp(40),
+  },
+  instructionText: {
+    fontSize: fs(18),
+    fontFamily: FONTS.regular,
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: hp(8),
+  },
+  emailText: {
+    fontSize: fs(18),
+    fontFamily: FONTS.semibold,
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: hp(40),
+  },
+  codeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: hp(40),
+    width: '100%',
+  },
+  codeGroup: {
+    flexDirection: 'row',
+    gap: wp(8),
+  },
+  codeSeparator: {
+    width: wp(16),
+  },
+  codeInput: {
+    width: wp(40),
+    height: hp(46),
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D0D0D0',
+    borderRadius: 12,
+    fontSize: fs(24),
+    fontFamily: FONTS.semibold,
+    color: '#000000',
+    textAlign: 'center',
+  },
+  verifyButton: {
+    position: 'absolute',
+    bottom: hp(40),
+    left: spacing.xl,
+    right: spacing.xl,
+    backgroundColor: '#0000FF',
+    borderRadius: 12,
+    paddingVertical: hp(16),
+    alignItems: 'center',
+    minHeight: hp(52),
+    justifyContent: 'center',
+  },
+  verifyButtonDisabled: {
+    opacity: 0.6,
+  },
+  verifyButtonText: {
+    color: '#FFFFFF',
+    fontSize: fs(16),
+    fontFamily: FONTS.semibold,
+  },
+});
