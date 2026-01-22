@@ -1,115 +1,69 @@
-import { VideoRecommendationCard } from '@/components/channel-profile/video-recommendation-card';
-import { HorizontalVideoCard } from '@/components/program-profile/horizontal-video-card';
-import { FONTS } from '@/styles/global';
-import { fs, hp } from '@/utils/responsive';
-import { StyleSheet, Text, View } from 'react-native';
+import { VideoRecommendationCard } from "@/components/channel-profile/video-recommendation-card";
+import { HorizontalVideoCard } from "@/components/program-profile/horizontal-video-card";
+import { FONTS } from "@/styles/global";
+import { ChannelDetail } from "@/types/api.types";
+import { fs, hp } from "@/utils/responsive";
+import { useRouter } from "expo-router";
+import { StyleSheet, Text, View } from "react-native";
 
-export function HomeTab() {
-  const handleVideoPress = (title: string) => {
-    console.log('Video pressed:', title);
-    // Navigation logic will go here
+type HomeTabProps = {
+  detail: ChannelDetail;
+};
+
+export function HomeTab({ detail }: HomeTabProps) {
+  const router = useRouter();
+  const { channel, latestVideos } = detail;
+
+  const handleVideoPress = (videoId: string) => {
+    router.push(`/video?id=${videoId}`);
   };
 
-  const handleMenuPress = (title: string) => {
-    console.log('Menu pressed for:', title);
-    // Menu logic will go here
+  const handleMenuPress = (videoId: string) => {
+    console.log("Menu pressed for video:", videoId);
   };
 
   return (
     <View style={styles.container}>
-      {/* Featured Video */}
-      <VideoRecommendationCard
-        thumbnailSource={require('@/assets/images/Image-12.png')}
-        title="SOUL DEVELOPMENT 5TH OF NOVEMBER 2025"
-        channelAvatar={require('@/assets/images/Avatar.png')}
-        channelName="RHAPSODY DAILIES"
-        viewCount="500k views"
-        timeAgo="3hrs ago"
-        isLive={true}
-        duration="30:58"
-        onPress={() => handleVideoPress('SOUL DEVELOPMENT 5TH OF NOVEMBER 2025')}
-        onMenuPress={() => handleMenuPress('SOUL DEVELOPMENT 5TH OF NOVEMBER 2025')}
-      />
+      {/* Featured/Recommendation Video (using the first latest video as featured for now) */}
+      {latestVideos && latestVideos.length > 0 && (
+        <VideoRecommendationCard
+          thumbnailSource={{ uri: latestVideos[0].thumbnail }}
+          title={latestVideos[0].title}
+          channelAvatar={
+            channel.avatar
+              ? { uri: channel.avatar }
+              : require("@/assets/logo/Logo.png")
+          }
+          channelName={channel.name}
+          viewCount={`${latestVideos[0].views || 0} views`}
+          timeAgo={latestVideos[0].uploadDate}
+          isLive={false} // Would need real data
+          duration={`${Math.floor(latestVideos[0].duration / 60)}:${(latestVideos[0].duration % 60).toString().padStart(2, "0")}`}
+          onPress={() => handleVideoPress(latestVideos[0].id)}
+          onMenuPress={() => handleMenuPress(latestVideos[0].id)}
+        />
+      )}
 
       {/* Latest Videos Section */}
       <Text style={styles.sectionTitle}>Latest Videos</Text>
 
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="LIVE VICTORIOUSLY FROM INSIDE OUT 4TH OF NOVE..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('LIVE VICTORIOUSLY FROM INSIDE OUT 4TH OF NOVE...')}
-        onMenuPress={() => handleMenuPress('LIVE VICTORIOUSLY FROM INSIDE OUT 4TH OF NOVE...')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="THE BEAUTY OF SERVING WITH THE SPIRIT 3RD OF..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('THE BEAUTY OF SERVING WITH THE SPIRIT 3RD OF...')}
-        onMenuPress={() => handleMenuPress('THE BEAUTY OF SERVING WITH THE SPIRIT 3RD OF...')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="CONSCIOUSNESS OF THE SPIRITUAL 2ND OF NOVE..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('CONSCIOUSNESS OF THE SPIRITUAL 2ND OF NOVE...')}
-        onMenuPress={() => handleMenuPress('CONSCIOUSNESS OF THE SPIRITUAL 2ND OF NOVE...')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="THE GRACE ADVANTAGE 1ST OF NOVEMBER 2025"
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('THE GRACE ADVANTAGE 1ST OF NOVEMBER 2025')}
-        onMenuPress={() => handleMenuPress('THE GRACE ADVANTAGE 1ST OF NOVEMBER 2025')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="LIFTING YOUR HANDS TO THE LORD 31ST OF OCTO..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('LIFTING YOUR HANDS TO THE LORD 31ST OF OCTO...')}
-        onMenuPress={() => handleMenuPress('LIFTING YOUR HANDS TO THE LORD 31ST OF OCTO...')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="HEIRS OF THE PROMISE 30TH OF OCTOBER 2025"
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('HEIRS OF THE PROMISE 30TH OF OCTOBER 2025')}
-        onMenuPress={() => handleMenuPress('HEIRS OF THE PROMISE 30TH OF OCTOBER 2025')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="YOUR LIFE—A FOUNTAIN OF LIVING WATER 29TH O..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('YOUR LIFE—A FOUNTAIN OF LIVING WATER 29TH O...')}
-        onMenuPress={() => handleMenuPress('YOUR LIFE—A FOUNTAIN OF LIVING WATER 29TH O...')}
-      />
+      {latestVideos && latestVideos.length > 0 ? (
+        latestVideos.map((video) => (
+          <HorizontalVideoCard
+            key={video.id}
+            thumbnailSource={{ uri: video.thumbnail }}
+            duration={`${Math.floor(video.duration / 60)}:${(video.duration % 60).toString().padStart(2, "0")}`}
+            title={video.title}
+            channelName={channel.name}
+            viewCount={`${video.views || 0} views`}
+            timeAgo={video.uploadDate}
+            onPress={() => handleVideoPress(video.id)}
+            onMenuPress={() => handleMenuPress(video.id)}
+          />
+        ))
+      ) : (
+        <Text style={styles.emptyText}>No videos available</Text>
+      )}
     </View>
   );
 }
@@ -121,8 +75,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: fs(20),
     fontFamily: FONTS.bold,
-    color: '#000000',
+    color: "#000000",
     marginTop: hp(10),
     marginBottom: hp(16),
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#737373",
+    marginTop: hp(20),
+    fontFamily: FONTS.regular,
   },
 });

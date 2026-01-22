@@ -1,121 +1,103 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/services/api.client';
-import { API_ENDPOINTS } from '@/config/api.config';
-import { Channel, Video, PaginatedResponse } from '@/types/api.types';
+import { channelService } from "@/services/channel.service";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 /**
  * Query Keys for Channels
  */
 export const channelKeys = {
-  all: ['channels'] as const,
-  lists: () => [...channelKeys.all, 'list'] as const,
-  detail: (id: string) => [...channelKeys.all, 'detail', id] as const,
-  videos: (id: string) => [...channelKeys.all, 'videos', id] as const,
-  subscriptions: () => [...channelKeys.all, 'subscriptions'] as const,
+  all: ["channels"] as const,
+  lists: () => [...channelKeys.all, "list"] as const,
+  detail: (slug: string) => [...channelKeys.all, "detail", slug] as const,
+  videos: (slug: string, page: number) =>
+    [...channelKeys.all, "videos", slug, page] as const,
+  schedule: (slug: string, date?: string) =>
+    [...channelKeys.all, "schedule", slug, date] as const,
+  subscriptions: () => [...channelKeys.all, "subscriptions"] as const,
 };
 
 /**
- * Get channel details
+ * Get channel details hook
  */
-export function useChannel(channelId: string) {
+export function useChannel(slug: string) {
   return useQuery({
-    queryKey: channelKeys.detail(channelId),
+    queryKey: channelKeys.detail(slug),
     queryFn: async () => {
-      const response = await api.get<Channel>(
-        API_ENDPOINTS.CHANNELS.DETAILS(channelId)
-      );
+      const response = await channelService.getChannelBySlug(slug);
       return response.data;
     },
-    enabled: !!channelId,
+    enabled: !!slug,
   });
 }
 
 /**
- * Get channel videos
+ * Get channel videos hook
  */
-export function useChannelVideos(channelId: string, page = 1) {
+export function useChannelVideos(slug: string, page = 1, limit = 20) {
   return useQuery({
-    queryKey: [...channelKeys.videos(channelId), page],
+    queryKey: channelKeys.videos(slug, page),
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<Video>>(
-        API_ENDPOINTS.CHANNELS.VIDEOS(channelId),
-        { params: { page, limit: 20 } }
-      );
+      const response = await channelService.getChannelVideos(slug, page, limit);
       return response.data;
     },
-    enabled: !!channelId,
+    enabled: !!slug,
   });
 }
 
 /**
- * Get user subscriptions
+ * Get channel schedule hook
  */
-export function useSubscriptions() {
+export function useChannelSchedule(
+  slug: string,
+  date?: string,
+  limit?: number,
+) {
   return useQuery({
-    queryKey: channelKeys.subscriptions(),
+    queryKey: channelKeys.schedule(slug, date),
     queryFn: async () => {
-      const response = await api.get<Channel[]>(
-        API_ENDPOINTS.CHANNELS.SUBSCRIPTIONS
+      const response = await channelService.getChannelSchedule(
+        slug,
+        date,
+        limit,
       );
       return response.data;
     },
+    enabled: !!slug,
   });
 }
 
 /**
- * Subscribe to channel
+ * Subscribe mutation
  */
 export function useSubscribe() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (channelId: string) => {
-      await api.post(API_ENDPOINTS.CHANNELS.SUBSCRIBE(channelId));
-      return channelId;
+    mutationFn: async ({ id, slug }: { id: string; slug: string }) => {
+      await channelService.subscribe(id);
+      return { id, slug };
     },
-    onSuccess: (channelId) => {
-      // Update channel detail cache
-      queryClient.setQueryData(channelKeys.detail(channelId), (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          isSubscribed: true,
-          subscriberCount: old.subscriberCount + 1,
-        };
-      });
-      
-      // Invalidate subscriptions list
-      queryClient.invalidateQueries({ 
-        queryKey: channelKeys.subscriptions() 
-      });
+    onSuccess: ({ slug }) => {
+      // Invalidate channel details to refetch subscriber count and subscription status
+      queryClient.invalidateQueries({ queryKey: channelKeys.detail(slug) });
+      queryClient.invalidateQueries({ queryKey: channelKeys.subscriptions() });
     },
   });
 }
 
 /**
- * Unsubscribe from channel
+ * Unsubscribe mutation
  */
 export function useUnsubscribe() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (channelId: string) => {
-      await api.post(API_ENDPOINTS.CHANNELS.UNSUBSCRIBE(channelId));
-      return channelId;
+    mutationFn: async ({ id, slug }: { id: string; slug: string }) => {
+      await channelService.unsubscribe(id);
+      return { id, slug };
     },
-    onSuccess: (channelId) => {
-      queryClient.setQueryData(channelKeys.detail(channelId), (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          isSubscribed: false,
-          subscriberCount: Math.max(0, old.subscriberCount - 1),
-        };
-      });
-      
-      queryClient.invalidateQueries({ 
-        queryKey: channelKeys.subscriptions() 
-      });
+    onSuccess: ({ slug }) => {
+      queryClient.invalidateQueries({ queryKey: channelKeys.detail(slug) });
+      queryClient.invalidateQueries({ queryKey: channelKeys.subscriptions() });
     },
   });
 }

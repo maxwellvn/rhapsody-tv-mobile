@@ -1,100 +1,58 @@
-import { HorizontalVideoCard } from '@/components/program-profile/horizontal-video-card';
-import { FONTS } from '@/styles/global';
-import { fs, hp } from '@/utils/responsive';
-import { StyleSheet, Text, View } from 'react-native';
+import { HorizontalVideoCard } from "@/components/program-profile/horizontal-video-card";
+import { useChannelVideos } from "@/hooks/queries/useChannelQueries";
+import { FONTS } from "@/styles/global";
+import { fs, hp } from "@/utils/responsive";
+import { useRouter } from "expo-router";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-export function VideosTab() {
-  const handleVideoPress = (title: string) => {
-    console.log('Video pressed:', title);
-    // Navigation logic will go here
+type VideosTabProps = {
+  slug: string;
+};
+
+export function VideosTab({ slug }: VideosTabProps) {
+  const router = useRouter();
+  const { data, isLoading } = useChannelVideos(slug);
+
+  const handleVideoPress = (videoId: string) => {
+    router.push(`/video?id=${videoId}`);
   };
 
-  const handleMenuPress = (title: string) => {
-    console.log('Menu pressed for:', title);
-    // Menu logic will go here
+  const handleMenuPress = (videoId: string) => {
+    console.log("Menu pressed for:", videoId);
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color="#1A237E" />
+      </View>
+    );
+  }
+
+  const videos = data?.videos || [];
 
   return (
     <View style={styles.container}>
       {/* Latest Videos Section */}
       <Text style={styles.sectionTitle}>Latest Videos</Text>
 
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="LIVE VICTORIOUSLY FROM INSIDE OUT 4TH OF NOVE..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('LIVE VICTORIOUSLY FROM INSIDE OUT 4TH OF NOVE...')}
-        onMenuPress={() => handleMenuPress('LIVE VICTORIOUSLY FROM INSIDE OUT 4TH OF NOVE...')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="THE BEAUTY OF SERVING WITH THE SPIRIT 3RD OF..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('THE BEAUTY OF SERVING WITH THE SPIRIT 3RD OF...')}
-        onMenuPress={() => handleMenuPress('THE BEAUTY OF SERVING WITH THE SPIRIT 3RD OF...')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="CONSCIOUSNESS OF THE SPIRITUAL 2ND OF NOVE..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('CONSCIOUSNESS OF THE SPIRITUAL 2ND OF NOVE...')}
-        onMenuPress={() => handleMenuPress('CONSCIOUSNESS OF THE SPIRITUAL 2ND OF NOVE...')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="THE GRACE ADVANTAGE 1ST OF NOVEMBER 2025"
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('THE GRACE ADVANTAGE 1ST OF NOVEMBER 2025')}
-        onMenuPress={() => handleMenuPress('THE GRACE ADVANTAGE 1ST OF NOVEMBER 2025')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="LIFTING YOUR HANDS TO THE LORD 31ST OF OCTO..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('LIFTING YOUR HANDS TO THE LORD 31ST OF OCTO...')}
-        onMenuPress={() => handleMenuPress('LIFTING YOUR HANDS TO THE LORD 31ST OF OCTO...')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="HEIRS OF THE PROMISE 30TH OF OCTOBER 2025"
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('HEIRS OF THE PROMISE 30TH OF OCTOBER 2025')}
-        onMenuPress={() => handleMenuPress('HEIRS OF THE PROMISE 30TH OF OCTOBER 2025')}
-      />
-
-      <HorizontalVideoCard
-        thumbnailSource={require('@/assets/images/Image-11.png')}
-        duration="30:45"
-        title="YOUR LIFE—A FOUNTAIN OF LIVING WATER 29TH O..."
-        channelName="Rhapsody Dailies"
-        viewCount="64k views"
-        timeAgo="1 day ago"
-        onPress={() => handleVideoPress('YOUR LIFE—A FOUNTAIN OF LIVING WATER 29TH O...')}
-        onMenuPress={() => handleMenuPress('YOUR LIFE—A FOUNTAIN OF LIVING WATER 29TH O...')}
-      />
+      {videos.length > 0 ? (
+        videos.map((video) => (
+          <HorizontalVideoCard
+            key={video.id}
+            thumbnailSource={{ uri: video.thumbnail }}
+            duration={`${Math.floor(video.duration / 60)}:${(video.duration % 60).toString().padStart(2, "0")}`}
+            title={video.title}
+            channelName={video.channel.name} // Assuming video object has channel name or we can pass it
+            viewCount={`${video.views || 0} views`}
+            timeAgo={video.uploadDate}
+            onPress={() => handleVideoPress(video.id)}
+            onMenuPress={() => handleMenuPress(video.id)}
+          />
+        ))
+      ) : (
+        <Text style={styles.emptyText}>No videos found</Text>
+      )}
     </View>
   );
 }
@@ -106,7 +64,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: fs(20),
     fontFamily: FONTS.bold,
-    color: '#000000',
+    color: "#000000",
     marginBottom: hp(16),
+  },
+  loadingContainer: {
+    padding: hp(40),
+    alignItems: "center",
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#737373",
+    marginTop: hp(20),
+    fontFamily: FONTS.regular,
   },
 });

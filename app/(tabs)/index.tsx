@@ -1,35 +1,57 @@
-import { BottomNav } from '@/components/bottom-nav';
-import { ChannelsListSection } from '@/components/home/channels-list-section';
-import { ContinueWatchingSection } from '@/components/home/continue-watching-section';
-import { FeaturedVideosSection } from '@/components/home/featured-videos-section';
-import { LiveNowSection } from '@/components/home/live-now-section';
-import { ProgramHighlightsSection } from '@/components/home/program-highlights-section';
-import { ProgramsSection } from '@/components/home/programs-section';
-import { SearchBar } from '@/components/search-bar';
-import { styles } from '@/styles/home.styles';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { BottomNav } from "@/components/bottom-nav";
+import { ChannelsListSection } from "@/components/home/channels-list-section";
+import { ContinueWatchingSection } from "@/components/home/continue-watching-section";
+import { FeaturedVideosSection } from "@/components/home/featured-videos-section";
+import { LiveNowSection } from "@/components/home/live-now-section";
+import { ProgramHighlightsSection } from "@/components/home/program-highlights-section";
+import { ProgramsSection } from "@/components/home/programs-section";
+import { SearchBar } from "@/components/search-bar";
+import { homepageKeys } from "@/hooks/queries/useHomepageQueries";
+import { styles } from "@/styles/home.styles";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
+import {
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleNotificationPress = () => {
-    router.push('/notifications');
+    router.push("/notifications");
   };
 
   const handleSearch = (text: string) => {
-    console.log('Search:', text);
+    console.log("Search:", text);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.refetchQueries({ queryKey: homepageKeys.all });
+    } catch (error) {
+      console.error("Error refreshing home data:", error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleTabPress = (tab: string) => {
-    if (tab === 'Discover') {
-      router.push('/(tabs)/discover');
-    } else if (tab === 'Schedule') {
-      router.push('/(tabs)/schedule');
-    } else if (tab === 'Profile') {
-      router.push('/(tabs)/profile');
-    } else if (tab === 'Home') {
+    if (tab === "Discover") {
+      router.push("/(tabs)/discover");
+    } else if (tab === "Schedule") {
+      router.push("/(tabs)/schedule");
+    } else if (tab === "Profile") {
+      router.push("/(tabs)/profile");
+    } else if (tab === "Home") {
       // Already on home
     }
   };
@@ -37,17 +59,20 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Image
-          source={require('@/assets/logo/Logo.png')}
+          source={require("@/assets/logo/Logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />
-        <Pressable onPress={handleNotificationPress} style={styles.notificationButton}>
+        <Pressable
+          onPress={handleNotificationPress}
+          style={styles.notificationButton}
+        >
           <Image
-            source={require('@/assets/Icons/Bell.png')}
+            source={require("@/assets/Icons/Bell.png")}
             style={styles.notificationIcon}
             resizeMode="contain"
           />
@@ -56,17 +81,25 @@ export default function HomeScreen() {
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <SearchBar 
+        <SearchBar
           placeholder="Search channels and programs..."
           onSearch={handleSearch}
         />
       </View>
 
       {/* Content */}
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#0066CC"]} // Custom color for the spinner
+            tintColor="#0066CC" // For iOS
+          />
+        }
       >
         <LiveNowSection />
         <ContinueWatchingSection />

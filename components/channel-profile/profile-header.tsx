@@ -1,68 +1,96 @@
-import { Button } from '@/components/button';
-import { FONTS } from '@/styles/global';
-import { borderRadius, fs, hp, spacing, wp } from '@/utils/responsive';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Button } from "@/components/button";
+import {
+  useSubscribe,
+  useUnsubscribe,
+} from "@/hooks/queries/useChannelQueries";
+import { FONTS } from "@/styles/global";
+import { Channel } from "@/types/api.types";
+import { borderRadius, fs, hp, spacing, wp } from "@/utils/responsive";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 
 type ChannelProfileHeaderProps = {
-  logoImage: any;
-  avatarImage: any;
-  channelName: string;
-  subscriberCount: string;
-  videoCount: string;
-  description: string;
-  onSubscribe?: () => void;
+  channel: Channel;
 };
 
-export function ChannelProfileHeader({
-  logoImage,
-  avatarImage,
-  channelName,
-  subscriberCount,
-  videoCount,
-  description,
-  onSubscribe,
-}: ChannelProfileHeaderProps) {
+export function ChannelProfileHeader({ channel }: ChannelProfileHeaderProps) {
+  const subscribeMutation = useSubscribe();
+  const unsubscribeMutation = useUnsubscribe();
+
+  const isSubscribing =
+    subscribeMutation.isPending || unsubscribeMutation.isPending;
+
+  const handleToggleSubscribe = () => {
+    if (channel.isSubscribed) {
+      unsubscribeMutation.mutate({ id: channel.id, slug: channel.slug });
+    } else {
+      subscribeMutation.mutate({ id: channel.id, slug: channel.slug });
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Blue Background with Full Width Logo/Banner */}
       <View style={styles.bannerContainer}>
-        <Image 
-          source={logoImage}
-          style={styles.banner}
-          resizeMode="contain"
-        />
+        {channel.coverImageUrl ? (
+          <Image
+            source={{ uri: channel.coverImageUrl }}
+            style={styles.banner}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.bannerPlaceholder} />
+        )}
       </View>
 
       {/* Profile Info Section */}
       <View style={styles.profileSection}>
         {/* Avatar and Channel Name */}
         <View style={styles.infoRow}>
-          <Image 
-            source={avatarImage}
+          <Image
+            source={
+              channel.avatar
+                ? { uri: channel.avatar }
+                : require("@/assets/logo/Logo.png")
+            }
             style={styles.avatar}
-            resizeMode="contain"
+            resizeMode="cover"
           />
-          
+
           <View style={styles.infoContainer}>
-            <Text style={styles.channelName}>{channelName}</Text>
+            <Text style={styles.channelName}>{channel.name}</Text>
             <Text style={styles.stats}>
-              {subscriberCount} | {videoCount}
+              {channel.subscriberCount.toLocaleString()} subscribers |{" "}
+              {channel.videoCount} videos
             </Text>
           </View>
         </View>
 
         {/* Description */}
         <Text style={styles.description} numberOfLines={2}>
-          {description}
+          {channel.description}
         </Text>
 
         {/* Subscribe Button */}
-        <Button 
-          onPress={onSubscribe}
-          style={styles.subscribeButton}
-          textStyle={styles.subscribeButtonText}
+        <Button
+          onPress={handleToggleSubscribe}
+          style={[
+            styles.subscribeButton,
+            channel.isSubscribed && styles.subscribedButton,
+            isSubscribing && styles.disabledButton,
+          ]}
+          textStyle={[
+            styles.subscribeButtonText,
+            channel.isSubscribed && styles.subscribedButtonText,
+          ]}
+          disabled={isSubscribing}
         >
-          Subscribe
+          {isSubscribing ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : channel.isSubscribed ? (
+            "Subscribed"
+          ) : (
+            "Subscribe"
+          )}
         </Button>
       </View>
     </View>
@@ -71,27 +99,32 @@ export function ChannelProfileHeader({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   bannerContainer: {
-    width: '100%',
+    width: "100%",
     height: hp(150),
-    backgroundColor: '#1A237E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    backgroundColor: "#1A237E",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   banner: {
-    width: '100%',
-    height: '80%',
+    width: "100%",
+    height: "100%",
+  },
+  bannerPlaceholder: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#1A237E",
   },
   profileSection: {
     paddingHorizontal: spacing.xl,
     paddingTop: hp(16),
   },
   infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: hp(12),
   },
   avatar: {
@@ -99,7 +132,8 @@ const styles = StyleSheet.create({
     height: wp(64),
     borderRadius: wp(32),
     marginRight: spacing.md,
-    overflow: 'hidden',
+    overflow: "hidden",
+    backgroundColor: "#F5F5F5",
   },
   infoContainer: {
     flex: 1,
@@ -107,31 +141,42 @@ const styles = StyleSheet.create({
   channelName: {
     fontSize: fs(18),
     fontFamily: FONTS.bold,
-    color: '#000000',
+    color: "#000000",
     marginBottom: hp(4),
   },
   stats: {
     fontSize: fs(12),
     fontFamily: FONTS.regular,
-    color: '#737373',
+    color: "#737373",
   },
   description: {
     fontSize: fs(14),
     fontFamily: FONTS.regular,
-    color: '#737373',
+    color: "#737373",
     lineHeight: fs(20),
     marginBottom: hp(16),
   },
   subscribeButton: {
-    backgroundColor: '#0000FF',
+    backgroundColor: "#0000FF",
     borderRadius: borderRadius.sm,
     paddingVertical: hp(12),
     marginBottom: hp(24),
   },
+  subscribedButton: {
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
   subscribeButtonText: {
     fontSize: fs(16),
     fontFamily: FONTS.semibold,
-    color: '#FFFFFF',
-    textAlign: 'center',
+    color: "#FFFFFF",
+    textAlign: "center",
+  },
+  subscribedButtonText: {
+    color: "#737373",
   },
 });

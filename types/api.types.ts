@@ -62,6 +62,45 @@ export interface User {
 }
 
 /**
+ * User Settings (server DTO shape)
+ */
+export interface UserGeneralSettings {
+  appLanguage: string;
+  autoRotateScreen: boolean;
+}
+
+export interface UserNotificationSettings {
+  subscriptions: boolean;
+  recommendedVideos: boolean;
+  activityOnMyComments: boolean;
+}
+
+export interface UserQualitySettings {
+  videoQualityMobile: string;
+  videoQualityWifi: string;
+  audioQuality: string;
+}
+
+export interface UserDownloadSettings {
+  downloadQuality: string;
+  downloadOverWifiOnly: boolean;
+}
+
+export interface UserSettingsResponse {
+  general: UserGeneralSettings;
+  notifications: UserNotificationSettings;
+  quality: UserQualitySettings;
+  downloads: UserDownloadSettings;
+}
+
+export interface UpdateUserSettingsRequest {
+  general?: Partial<UserGeneralSettings>;
+  notifications?: Partial<UserNotificationSettings>;
+  quality?: Partial<UserQualitySettings>;
+  downloads?: Partial<UserDownloadSettings>;
+}
+
+/**
  * Video Types
  */
 
@@ -99,7 +138,7 @@ export interface VideoListParams {
   page?: number;
   limit?: number;
   category?: string;
-  sortBy?: 'newest' | 'popular' | 'trending';
+  sortBy?: "newest" | "popular" | "trending";
   search?: string;
 }
 
@@ -110,14 +149,46 @@ export interface VideoListParams {
 export interface Channel {
   id: string;
   name: string;
-  handle: string;
-  avatar: string;
-  banner?: string;
+  handle?: string;
+  slug: string;
+  avatar?: string;
+  logoUrl?: string; // Added
+  coverImageUrl?: string; // Added
   description: string;
+  websiteUrl?: string; // Added
   subscriberCount: number;
   videoCount: number;
   isSubscribed: boolean;
+  joinedAt?: string; // Added
   createdAt: string;
+}
+
+export interface ChannelDetail {
+  channel: Channel;
+  latestVideos: Video[];
+}
+
+export interface ChannelVideosResponse {
+  videos: Video[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ChannelSchedule {
+  id: string;
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  durationInMinutes: number;
+  category: string;
+  isLive: boolean;
+  viewerCount: number;
+  bookmarkCount: number;
+  videoId: string;
+  liveStreamId: string;
 }
 
 /**
@@ -173,7 +244,7 @@ export interface CreateCommentRequest {
 
 export interface Notification {
   id: string;
-  type: 'video_upload' | 'comment' | 'like' | 'subscription' | 'system';
+  type: "video_upload" | "comment" | "like" | "subscription" | "system";
   title: string;
   message: string;
   thumbnail?: string;
@@ -201,12 +272,12 @@ export interface UserSettings {
     restrictedMode: boolean;
   };
   video: {
-    mobileQuality: 'auto' | 'higher' | 'data-saver';
-    wifiQuality: 'auto' | 'higher' | 'data-saver';
-    audioQuality: 'auto' | 'higher' | 'normal';
+    mobileQuality: "auto" | "higher" | "data-saver";
+    wifiQuality: "auto" | "higher" | "data-saver";
+    audioQuality: "auto" | "higher" | "normal";
   };
   downloads: {
-    quality: 'low' | 'medium' | 'high';
+    quality: "low" | "medium" | "high";
     wifiOnly: boolean;
   };
   notifications: NotificationSettings;
@@ -222,6 +293,38 @@ export interface WatchHistory {
   watchedAt: string;
   progress: number; // Progress percentage (0-100)
   completed: boolean;
+}
+
+export interface WatchHistoryItemDto {
+  video: any;
+  progressSeconds: number;
+  durationSeconds: number;
+  watchedAt: string;
+}
+
+export interface PaginatedWatchHistoryResponseDto {
+  items: WatchHistoryItemDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface AddToWatchlistRequest {
+  videoId: string;
+}
+
+export interface WatchlistItemDto {
+  video: any;
+  addedAt: string;
+}
+
+export interface PaginatedWatchlistResponseDto {
+  items: WatchlistItemDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface SearchHistory {

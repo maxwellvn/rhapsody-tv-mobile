@@ -5,68 +5,73 @@
 
 export const API_CONFIG = {
   // Backend API base URL
-  BASE_URL: 'https://rhapsody-tv-backend.fly.dev/v1',
-  
+  BASE_URL: "https://rhapsody-tv-backend.fly.dev/v1",
+
   // Timeout duration in milliseconds
   TIMEOUT: 30000,
-  
+
   // API version
-  VERSION: 'v1',
+  VERSION: "v1",
 } as const;
 
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
-    REFRESH_TOKEN: '/auth/refresh',
-    REQUEST_EMAIL_VERIFICATION: '/auth/email/request-verification',
-    VERIFY_EMAIL: '/auth/verify-email',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    RESET_PASSWORD: '/auth/reset-password',
-    CHANGE_PASSWORD: '/auth/change-password',
+    LOGIN: "/auth/login",
+    REGISTER: "/auth/register",
+    LOGOUT: "/auth/logout",
+    REFRESH_TOKEN: "/auth/refresh",
+    REQUEST_EMAIL_VERIFICATION: "/auth/email/request-verification",
+    VERIFY_EMAIL: "/auth/email/verify",
+    FORGOT_PASSWORD: "/auth/forgot-password",
+    RESET_PASSWORD: "/auth/reset-password",
+    CHANGE_PASSWORD: "/auth/change-password",
   },
-  
+
   // User
   USER: {
-    PROFILE: '/user/profile',
-    UPDATE_PROFILE: '/user/profile/update',
-    UPLOAD_AVATAR: '/user/avatar',
-    PREFERENCES: '/user/preferences',
+    PROFILE: "/users/me",
+    UPDATE_PROFILE: "/users/me",
+    UPLOAD_AVATAR: "/users/me/avatar",
+    SETTINGS: "/users/me/settings",
+    WATCHLIST: "/users/me/watchlist",
+    WATCHLIST_ITEM: (videoId: string) => `/users/me/watchlist/${videoId}`,
+    HISTORY: "/users/me/history",
+    HISTORY_ITEM: (videoId: string) => `/users/me/history/${videoId}`,
   },
-  
+
   // Videos
   VIDEOS: {
-    LIST: '/videos',
-    TRENDING: '/videos/trending',
-    RECOMMENDED: '/videos/recommended',
-    SEARCH: '/videos/search',
+    LIST: "/videos",
+    TRENDING: "/videos/trending",
+    RECOMMENDED: "/videos/recommended",
+    SEARCH: "/videos/search",
     DETAILS: (id: string) => `/videos/${id}`,
     RELATED: (id: string) => `/videos/${id}/related`,
     STREAM: (id: string) => `/videos/${id}/stream`,
   },
-  
+
   // Channels
   CHANNELS: {
-    LIST: '/channels',
-    DETAILS: (id: string) => `/channels/${id}`,
-    VIDEOS: (id: string) => `/channels/${id}/videos`,
+    LIST: "/channels",
+    DETAILS: (slug: string) => `/channels/${slug}`,
+    VIDEOS: (slug: string) => `/channels/${slug}/videos`,
+    SCHEDULE: (slug: string) => `/channels/${slug}/schedule`,
     SUBSCRIBE: (id: string) => `/channels/${id}/subscribe`,
     UNSUBSCRIBE: (id: string) => `/channels/${id}/unsubscribe`,
-    SUBSCRIPTIONS: '/channels/subscriptions',
+    SUBSCRIPTIONS: "/channels/subscriptions",
   },
-  
+
   // Playlists
   PLAYLISTS: {
-    LIST: '/playlists',
+    LIST: "/playlists",
     DETAILS: (id: string) => `/playlists/${id}`,
-    CREATE: '/playlists',
+    CREATE: "/playlists",
     UPDATE: (id: string) => `/playlists/${id}`,
     DELETE: (id: string) => `/playlists/${id}`,
     ADD_VIDEO: (id: string) => `/playlists/${id}/videos`,
   },
-  
+
   // Interactions
   INTERACTIONS: {
     LIKE: (videoId: string) => `/videos/${videoId}/like`,
@@ -75,42 +80,42 @@ export const API_ENDPOINTS = {
     DELETE_COMMENT: (commentId: string) => `/comments/${commentId}`,
     VIEW: (videoId: string) => `/videos/${videoId}/view`,
   },
-  
+
   // History
   HISTORY: {
-    WATCH_HISTORY: '/history/watch',
-    SEARCH_HISTORY: '/history/search',
-    CLEAR_HISTORY: '/history/clear',
+    WATCH_HISTORY: "/history/watch",
+    SEARCH_HISTORY: "/history/search",
+    CLEAR_HISTORY: "/history/clear",
   },
-  
+
   // Downloads
   DOWNLOADS: {
-    LIST: '/downloads',
-    START: '/downloads/start',
+    LIST: "/downloads",
+    START: "/downloads/start",
     DELETE: (id: string) => `/downloads/${id}`,
   },
-  
+
   // Notifications
   NOTIFICATIONS: {
-    LIST: '/notifications',
+    LIST: "/notifications",
     READ: (id: string) => `/notifications/${id}/read`,
-    SETTINGS: '/notifications/settings',
-    UPDATE_SETTINGS: '/notifications/settings/update',
+    SETTINGS: "/notifications/settings",
+    UPDATE_SETTINGS: "/notifications/settings/update",
   },
-  
+
   // Settings
   SETTINGS: {
-    GET: '/settings',
-    UPDATE: '/settings/update',
+    GET: "/settings",
+    UPDATE: "/settings/update",
   },
-  
+
   // Homepage
   HOMEPAGE: {
-    LIVE_NOW: '/homepage/live-now',
-    CONTINUE_WATCHING: '/homepage/continue-watching',
-    CHANNELS: '/homepage/channels',
-    PROGRAMS: '/homepage/programs',
-    FEATURED_VIDEOS: '/homepage/featured-videos',
-    PROGRAM_HIGHLIGHTS: '/homepage/program-highlights',
+    LIVE_NOW: "/homepage/live-now",
+    CONTINUE_WATCHING: "/homepage/continue-watching",
+    CHANNELS: "/homepage/channels",
+    PROGRAMS: "/homepage/programs",
+    FEATURED_VIDEOS: "/homepage/featured-videos",
+    PROGRAM_HIGHLIGHTS: "/homepage/program-highlights",
   },
 } as const;
