@@ -1,11 +1,13 @@
-import { api } from './api.client';
-import { API_ENDPOINTS } from '@/config/api.config';
+import { API_ENDPOINTS } from "@/config/api.config";
 import {
+  ApiResponse,
+  LiveNowProgram,
+  LiveStreamDetails,
+  PaginatedResponse,
   Video,
   VideoListParams,
-  PaginatedResponse,
-  ApiResponse,
-} from '@/types/api.types';
+} from "@/types/api.types";
+import { api } from "./api.client";
 
 /**
  * Video Service
@@ -15,7 +17,9 @@ class VideoService {
   /**
    * Get list of videos
    */
-  async getVideos(params?: VideoListParams): Promise<ApiResponse<PaginatedResponse<Video>>> {
+  async getVideos(
+    params?: VideoListParams,
+  ): Promise<ApiResponse<PaginatedResponse<Video>>> {
     return api.get<PaginatedResponse<Video>>(API_ENDPOINTS.VIDEOS.LIST, {
       params,
     });
@@ -24,7 +28,9 @@ class VideoService {
   /**
    * Get trending videos
    */
-  async getTrendingVideos(params?: VideoListParams): Promise<ApiResponse<PaginatedResponse<Video>>> {
+  async getTrendingVideos(
+    params?: VideoListParams,
+  ): Promise<ApiResponse<PaginatedResponse<Video>>> {
     return api.get<PaginatedResponse<Video>>(API_ENDPOINTS.VIDEOS.TRENDING, {
       params,
     });
@@ -33,7 +39,9 @@ class VideoService {
   /**
    * Get recommended videos
    */
-  async getRecommendedVideos(params?: VideoListParams): Promise<ApiResponse<PaginatedResponse<Video>>> {
+  async getRecommendedVideos(
+    params?: VideoListParams,
+  ): Promise<ApiResponse<PaginatedResponse<Video>>> {
     return api.get<PaginatedResponse<Video>>(API_ENDPOINTS.VIDEOS.RECOMMENDED, {
       params,
     });
@@ -42,7 +50,10 @@ class VideoService {
   /**
    * Search videos
    */
-  async searchVideos(query: string, params?: VideoListParams): Promise<ApiResponse<PaginatedResponse<Video>>> {
+  async searchVideos(
+    query: string,
+    params?: VideoListParams,
+  ): Promise<ApiResponse<PaginatedResponse<Video>>> {
     return api.get<PaginatedResponse<Video>>(API_ENDPOINTS.VIDEOS.SEARCH, {
       params: { ...params, search: query },
     });
@@ -65,8 +76,8 @@ class VideoService {
   /**
    * Get video stream URL
    */
-  async getStreamUrl(videoId: string): Promise<ApiResponse<{ streamUrl: string }>> {
-    return api.get<{ streamUrl: string }>(API_ENDPOINTS.VIDEOS.STREAM(videoId));
+  async getStreamUrl(videoId: string): Promise<ApiResponse<LiveStreamDetails>> {
+    return api.get<LiveStreamDetails>(API_ENDPOINTS.VIDEOS.STREAM(videoId));
   }
 
   /**
@@ -86,7 +97,10 @@ class VideoService {
   /**
    * Record video view
    */
-  async recordView(videoId: string, watchTime?: number): Promise<ApiResponse<void>> {
+  async recordView(
+    videoId: string,
+    watchTime?: number,
+  ): Promise<ApiResponse<void>> {
     return api.post<void>(API_ENDPOINTS.INTERACTIONS.VIEW(videoId), {
       watchTime,
     });

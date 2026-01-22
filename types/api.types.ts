@@ -417,7 +417,12 @@ export interface HomepageProgram {
     coverImageUrl: string;
   };
   videoId: string;
-  livestreamId: string;
+  liveStreamId: string;
+}
+
+// Livestream details returned by stream/watch endpoints
+export interface LiveStreamDetails extends LiveNowProgram {
+  rtmpUrl?: string;
 }
 
 export interface HomepageFeaturedVideo {

@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 export const homepageKeys = {
   all: ["homepage"] as const,
   liveNow: () => [...homepageKeys.all, "liveNow"] as const,
+  watchLivestream: (livestreamId?: string) =>
+    [...homepageKeys.all, "watchLivestream", livestreamId] as const,
   continueWatching: () => [...homepageKeys.all, "continueWatching"] as const,
   channels: (limit?: number) =>
     [...homepageKeys.all, "channels", limit] as const,
@@ -26,8 +28,24 @@ export function useLiveNow() {
     queryKey: homepageKeys.liveNow(),
     queryFn: async () => {
       const response = await homepageService.getLiveNow();
+      console.log("response", response.data);
       return response.data;
     },
+  });
+}
+
+/**
+ * Get livestream details (for live video screen)
+ */
+export function useWatchLivestream(livestreamId?: string) {
+  return useQuery({
+    queryKey: homepageKeys.watchLivestream(livestreamId),
+    queryFn: async () => {
+      if (!livestreamId) return undefined;
+      const response = await homepageService.watchLivestream(livestreamId);
+      return response.data;
+    },
+    enabled: !!livestreamId,
   });
 }
 

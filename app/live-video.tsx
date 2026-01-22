@@ -1,66 +1,57 @@
-import { LiveChat } from '@/components/live-video/live-chat';
-import { LiveChatModal } from '@/components/live-video/live-chat-modal';
-import { VideoPlayer } from '@/components/video-player';
-import { VideoRecommendationCard } from '@/components/video-recommendation-card';
-import { videoService } from '@/services/video.service';
-import { styles } from '@/styles/live-video.styles';
-import { dimensions, fs } from '@/utils/responsive';
-import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LiveChat } from "@/components/live-video/live-chat";
+import { LiveChatModal } from "@/components/live-video/live-chat-modal";
+import { VideoPlayer } from "@/components/video-player";
+import { VideoRecommendationCard } from "@/components/video-recommendation-card";
+import { useWatchLivestream } from "@/hooks/queries/useHomepageQueries";
+import { styles } from "@/styles/live-video.styles";
+import { dimensions, fs } from "@/utils/responsive";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LiveVideoScreen() {
-  const { id } = useLocalSearchParams<{ id?: string; liveStreamId?: string }>();
+  const { liveStreamId } = useLocalSearchParams<{
+    liveStreamId?: string;
+  }>();
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [videoUri, setVideoUri] = useState<string | undefined>();
-  const [isLoadingVideo, setIsLoadingVideo] = useState(true);
 
-  const fetchVideoStream = async () => {
-    // For testing/demo purposes, use a test video if no id is provided
-    if (!id) {
-      // Using HLS stream URL for demo purposes
-      setVideoUri('https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8');
-      setIsLoadingVideo(false);
-      return;
-    }
+  const fallbackStreamUrl = useMemo(
+    () =>
+      "https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8",
+    [],
+  );
 
-    try {
-      setIsLoadingVideo(true);
-      
-      // Try to get stream URL from video service
-      const response = await videoService.getStreamUrl(id);
-      
-      if (response.success && response.data?.streamUrl) {
-        setVideoUri(response.data.streamUrl);
-      } else {
-        // Fallback to HLS stream for demo purposes
-        setVideoUri('https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8');
-      }
-    } catch (err: any) {
-      console.error('Error fetching video stream:', err);
-      // Fallback to HLS stream for demo purposes
-      setVideoUri('https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8');
-    } finally {
-      setIsLoadingVideo(false);
-    }
-  };
+  console.log("liveStreamId", liveStreamId);
 
-  useEffect(() => {
-    fetchVideoStream();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  const {
+    data: liveProgram,
+    isLoading: isLoadingProgram,
+    isError: isProgramError,
+  } = useWatchLivestream(liveStreamId);
+
+  console.log("liveProgram", liveProgram);
+
+  const videoUri = liveProgram?.rtmpUrl ?? fallbackStreamUrl;
+  const isLoadingVideo = isLoadingProgram;
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={["top"]}>
         <StatusBar style="light" />
 
         {/* Video Player - Always Visible */}
-        {isLoadingVideo && id ? (
+        {isLoadingVideo ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FFFFFF" />
             <Text style={styles.loadingText}>Loading video...</Text>
@@ -68,7 +59,7 @@ export default function LiveVideoScreen() {
         ) : (
           <VideoPlayer
             videoUri={videoUri}
-            thumbnailSource={require('@/assets/images/carusel-2.png')}
+            thumbnailSource={require("@/assets/images/carusel-2.png")}
             isLive={true}
           />
         )}
@@ -87,22 +78,45 @@ export default function LiveVideoScreen() {
           >
             {/* Video Details */}
             <View style={styles.detailsContainer}>
-              <Text style={styles.videoTitle}>
-                Your Loveworld Special with Pastor Chris Season 2 Phase 7
-              </Text>
+              {isLoadingProgram ? (
+                <Text style={styles.loadingText}>Loading details...</Text>
+              ) : (
+                <Text style={styles.videoTitle}>
+                  {liveProgram?.title || "Live stream"}
+                </Text>
+              )}
 
               <View style={styles.channelInfo}>
                 <Image
-                  source={require('@/assets/images/Avatar.png')}
+                  source={
+                    liveProgram?.channel?.logoUrl
+                      ? { uri: liveProgram.channel.logoUrl }
+                      : require("@/assets/images/Avatar.png")
+                  }
                   style={styles.channelIcon}
                   resizeMode="contain"
                 />
-                <Text style={styles.channelName}>Rhapsody TV</Text>
+                <Text style={styles.channelName}>
+                  {liveProgram?.channel?.name || "Rhapsody TV"}
+                </Text>
                 <View style={styles.viewCountContainer}>
-                  <Ionicons name="eye-outline" size={dimensions.isTablet ? fs(18) : fs(16)} color="#737373" />
-                  <Text style={styles.viewCount}>500k watching</Text>
+                  <Ionicons
+                    name="eye-outline"
+                    size={dimensions.isTablet ? fs(18) : fs(16)}
+                    color="#737373"
+                  />
+                  <Text style={styles.viewCount}>Live now</Text>
                 </View>
-                <Text style={styles.startedTime}>Started 3hrs ago</Text>
+                {liveProgram?.startTime && (
+                  <Text style={styles.startedTime}>
+                    {liveProgram.startTime}
+                  </Text>
+                )}
+                {isProgramError && (
+                  <Text style={styles.startedTime}>
+                    Unable to load livestream details.
+                  </Text>
+                )}
               </View>
 
               {/* Action Buttons */}
@@ -117,22 +131,38 @@ export default function LiveVideoScreen() {
                 </Pressable>
 
                 <Pressable style={styles.actionButton}>
-                  <Ionicons name="thumbs-up-outline" size={dimensions.isTablet ? fs(16) : fs(14)} color="#000000" />
+                  <Ionicons
+                    name="thumbs-up-outline"
+                    size={dimensions.isTablet ? fs(16) : fs(14)}
+                    color="#000000"
+                  />
                   <Text style={styles.actionButtonText}>Label</Text>
                 </Pressable>
 
                 <Pressable style={styles.actionButton}>
-                  <Ionicons name="gift-outline" size={dimensions.isTablet ? fs(16) : fs(14)} color="#000000" />
+                  <Ionicons
+                    name="gift-outline"
+                    size={dimensions.isTablet ? fs(16) : fs(14)}
+                    color="#000000"
+                  />
                   <Text style={styles.actionButtonText}>Sponsor</Text>
                 </Pressable>
 
                 <Pressable style={styles.actionButton}>
-                  <Ionicons name="share-social-outline" size={dimensions.isTablet ? fs(16) : fs(14)} color="#000000" />
+                  <Ionicons
+                    name="share-social-outline"
+                    size={dimensions.isTablet ? fs(16) : fs(14)}
+                    color="#000000"
+                  />
                   <Text style={styles.actionButtonText}>Share</Text>
                 </Pressable>
 
                 <Pressable style={styles.actionButton}>
-                  <Ionicons name="download-outline" size={dimensions.isTablet ? fs(16) : fs(14)} color="#000000" />
+                  <Ionicons
+                    name="download-outline"
+                    size={dimensions.isTablet ? fs(16) : fs(14)}
+                    color="#000000"
+                  />
                   <Text style={styles.actionButtonText}>Download</Text>
                 </Pressable>
               </ScrollView>
@@ -144,20 +174,20 @@ export default function LiveVideoScreen() {
             {/* Video Recommendations */}
             <View style={styles.recommendationsContainer}>
               <VideoRecommendationCard
-                thumbnailSource={require('@/assets/images/Image-2.png')}
+                thumbnailSource={require("@/assets/images/Image-2.png")}
                 title="Night Of A Thousand Crusades HIGHLIGHT 3"
                 channelName="Rhapsody TV"
-                channelAvatar={require('@/assets/images/Avatar.png')}
+                channelAvatar={require("@/assets/images/Avatar.png")}
                 viewCount="500k views"
                 timeAgo="3hrs ago"
                 isNew={true}
               />
 
               <VideoRecommendationCard
-                thumbnailSource={require('@/assets/images/Image-6.png')}
+                thumbnailSource={require("@/assets/images/Image-6.png")}
                 title="NOTHING ON MEDIA IS NEUTRAL A CONVERSATION WITH BLOSSOM CH..."
                 channelName="Program Highlights"
-                channelAvatar={require('@/assets/images/Avatar.png')}
+                channelAvatar={require("@/assets/images/Avatar.png")}
                 viewCount="500k views"
                 timeAgo="3hrs ago"
                 isNew={true}

@@ -18,9 +18,11 @@ export function LiveNowSection() {
   const { data: liveNowData, isLoading } = useLiveNow();
 
   const handleLivePress = () => {
-    if (liveNowData?.videoId) {
+    if (liveNowData?.liveStreamId) {
+      console.log("liveNowData", liveNowData);
       router.push(
-        `/live-video?id=${liveNowData.videoId}&liveStreamId=${liveNowData.liveStreamId}`,
+        `/live-video?liveStreamId=${liveNowData.liveStreamId}`,
+        // `/live-video?id=${liveNowData.videoId}&liveStreamId=${liveNowData.liveStreamId}`,
       );
     } else {
       // Navigate to live video page even for mock data

@@ -140,5 +140,7 @@ export const API_ENDPOINTS = {
     PROGRAMS: "/homepage/programs",
     FEATURED_VIDEOS: "/homepage/featured-videos",
     PROGRAM_HIGHLIGHTS: "/homepage/program-highlights",
+    WATCH_LIVESTREAM: (livestreamId: string) =>
+      `/homepage/watch-livestream/${livestreamId}`,
   },
 } as const;
