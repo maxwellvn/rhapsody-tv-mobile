@@ -554,6 +554,12 @@ export interface UpdateChannelSubscriptionSettingsDto {
   notifyOnNewProgram?: boolean;
 }
 
+export interface ChannelSubscriptionStatusResponse {
+  channelId: string;
+  isSubscribed: boolean;
+  subscription?: ChannelSubscriptionResponseDto;
+}
+
 /**
  * Update Progress Types
  */

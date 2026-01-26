@@ -2,13 +2,22 @@ import { LiveChat } from "@/components/live-video/live-chat";
 import { LiveChatModal } from "@/components/live-video/live-chat-modal";
 import { VideoPlayer } from "@/components/video-player";
 import { VideoRecommendationCard } from "@/components/video-recommendation-card";
+import { useToast } from "@/context/ToastContext";
+import {
+  useChannelSubscriptionStatus,
+  useSubscribe,
+  useUnsubscribe,
+} from "@/hooks/queries/useChannelQueries";
+
 import { useWatchLivestream } from "@/hooks/queries/useHomepageQueries";
+import { useLikeStatus, useToggleLike } from "@/hooks/queries/useVodQueries";
 import { styles } from "@/styles/live-video.styles";
+import { formatRelativeTime } from "@/utils/formatters";
 import { dimensions, fs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -19,11 +28,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+
+
 export default function LiveVideoScreen() {
   const { liveStreamId } = useLocalSearchParams<{
     liveStreamId?: string;
   }>();
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   const fallbackStreamUrl = useMemo(
     () =>
@@ -40,6 +52,86 @@ export default function LiveVideoScreen() {
   } = useWatchLivestream(liveStreamId);
 
   console.log("liveProgram", liveProgram);
+
+  // Get channel and video IDs from liveProgram
+  const channelId = liveProgram?.channel?.id;
+  const channelSlug = liveProgram?.channel?.slug;
+  const videoId = liveProgram?.videoId;
+
+  // Fetch subscription status on load
+  const { data: subscriptionStatus, isLoading: isCheckingSubscription } =
+    useChannelSubscriptionStatus(channelId);
+
+  // Subscribe/Unsubscribe mutations
+  const subscribeMutation = useSubscribe();
+  const unsubscribeMutation = useUnsubscribe();
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
+
+  // Reset when channel changes
+  useEffect(() => {
+    setIsSubscribed(null);
+  }, [channelId]);
+
+  useEffect(() => {
+    if (subscriptionStatus?.isSubscribed !== undefined) {
+      setIsSubscribed(subscriptionStatus.isSubscribed);
+    }
+  }, [subscriptionStatus]);
+
+  // Like status and toggle
+  const { data: likeStatusData } = useLikeStatus(videoId);
+  const toggleLikeMutation = useToggleLike();
+  const isLiked = likeStatusData?.isLiked ?? false;
+
+  // Handle subscribe/unsubscribe
+  const handleSubscribe = async () => {
+    if (!channelId || !channelSlug) {
+      showError("Channel information not available");
+      return;
+    }
+
+    try {
+      if (isSubscribed) {
+        await unsubscribeMutation.mutateAsync({
+          id: channelId,
+          slug: channelSlug,
+        });
+        setIsSubscribed(false);
+        showSuccess("Unsubscribed from channel");
+      } else {
+        await subscribeMutation.mutateAsync({
+          id: channelId,
+          slug: channelSlug,
+        });
+        setIsSubscribed(true);
+        showSuccess("Subscribed to channel!");
+      }
+    } catch {
+      showError("Failed to update subscription");
+    }
+  };
+
+  // Handle like/unlike
+  const handleLike = async () => {
+    if (!videoId) {
+      showError("Video information not available");
+      return;
+    }
+
+    try {
+      await toggleLikeMutation.mutateAsync(videoId);
+      showSuccess(isLiked ? "Removed like" : "Liked!");
+    } catch {
+      showError("Failed to update like");
+    }
+  };
+
+  const isSubscribeLoading =
+    subscribeMutation.isPending ||
+    unsubscribeMutation.isPending ||
+    isSubscribed === null ||
+    isCheckingSubscription;
+  const isLikeLoading = toggleLikeMutation.isPending;
 
   const videoUri = liveProgram?.rtmpUrl ?? fallbackStreamUrl;
   const isLoadingVideo = isLoadingProgram;
@@ -109,7 +201,7 @@ export default function LiveVideoScreen() {
                 </View>
                 {liveProgram?.startTime && (
                   <Text style={styles.startedTime}>
-                    {liveProgram.startTime}
+                    {formatRelativeTime(liveProgram.startTime)}
                   </Text>
                 )}
                 {isProgramError && (
@@ -126,17 +218,58 @@ export default function LiveVideoScreen() {
                 contentContainerStyle={styles.actionButtons}
                 style={styles.actionButtonsContainer}
               >
-                <Pressable style={styles.subscribeButton}>
-                  <Text style={styles.subscribeButtonText}>Subscribe</Text>
+                <Pressable
+                  style={[
+                    styles.subscribeButton,
+                    isSubscribed && styles.subscribedButton,
+                  ]}
+                  onPress={handleSubscribe}
+                  disabled={isSubscribeLoading || !channelId}
+                >
+                  {isSubscribeLoading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={isSubscribed ? "#000000" : "#FFFFFF"}
+                    />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.subscribeButtonText,
+                        isSubscribed && styles.subscribedButtonText,
+                      ]}
+                    >
+                      {isSubscribed ? "Subscribed" : "Subscribe"}
+                    </Text>
+                  )}
                 </Pressable>
 
-                <Pressable style={styles.actionButton}>
-                  <Ionicons
-                    name="thumbs-up-outline"
-                    size={dimensions.isTablet ? fs(16) : fs(14)}
-                    color="#000000"
-                  />
-                  <Text style={styles.actionButtonText}>Label</Text>
+                <Pressable
+                  style={[
+                    styles.actionButton,
+                    isLiked && styles.actionButtonActive,
+                  ]}
+                  onPress={handleLike}
+                  disabled={isLikeLoading || !videoId}
+                >
+                  {isLikeLoading ? (
+                    <ActivityIndicator size="small" color="#000000" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={isLiked ? "thumbs-up" : "thumbs-up-outline"}
+                        size={dimensions.isTablet ? fs(16) : fs(14)}
+                        color={isLiked ? "#E50914" : "#000000"}
+                      />
+                      <Text
+                        style={[
+                          styles.actionButtonText,
+                          isLiked && styles.actionButtonTextActive,
+                        ]}
+                      >
+                        {isLiked ? "Liked" : "Like"}
+                      </Text>
+                    </>
+                  )}
                 </Pressable>
 
                 <Pressable style={styles.actionButton}>

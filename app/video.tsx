@@ -33,13 +33,14 @@ export default function VideoScreen() {
     publishedAt?: string;
   }>({});
 
-  const fetchVideoStream = async () => {
+  const fallbackStreamUrl =
+    "https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8";
+
+  const fetchVideoData = async () => {
     // For testing/demo purposes, use a test video if no id is provided
     if (!id) {
-      // Using HLS stream URL for demo purposes
-      setVideoUri(
-        "https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8",
-      );
+      setVideoUri(fallbackStreamUrl);
+      setVideoDetails({});
       setIsLoadingVideo(false);
       return;
     }
@@ -47,57 +48,34 @@ export default function VideoScreen() {
     try {
       setIsLoadingVideo(true);
 
-      // Try to get stream URL from video service
-      const response = await videoService.getStreamUrl(id);
+      // Per API docs, VOD playback and details come from /v1/vod/{videoId}
+      const response = await videoService.getVodVideo(id);
 
-      if (response.success && response.data?.streamUrl) {
-        setVideoUri(response.data.streamUrl);
+      if (response.success && response.data) {
+        const video = response.data;
+        setVideoUri(video.playbackUrl || fallbackStreamUrl);
+        setVideoDetails({
+          title: video.title,
+          channelName: video.channel?.name,
+          channelAvatar: video.channel?.logoUrl,
+          views: video.viewCount,
+          publishedAt: video.createdAt,
+        });
       } else {
-        // Fallback to HLS stream for demo purposes
-        setVideoUri(
-          "https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8",
-        );
+        setVideoUri(fallbackStreamUrl);
+        setVideoDetails({});
       }
     } catch (err: any) {
       console.error("Error fetching video stream:", err);
-      // Fallback to HLS stream for demo purposes
-      setVideoUri(
-        "https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8",
-      );
+      setVideoUri(fallbackStreamUrl);
+      setVideoDetails({});
     } finally {
       setIsLoadingVideo(false);
     }
   };
 
-  const fetchVideoDetails = async () => {
-    if (!id) {
-      setVideoDetails({});
-      return;
-    }
-
-    try {
-      const response = await videoService.getVideoDetails(id);
-      if (response.success && response.data) {
-        const video = response.data;
-        setVideoDetails({
-          title: video.title,
-          channelName: video.channel?.name,
-          channelAvatar: video.channel?.avatar,
-          views: video.views,
-          publishedAt: video.uploadDate,
-        });
-      } else {
-        setVideoDetails({});
-      }
-    } catch (err) {
-      console.error("Error fetching video details:", err);
-      setVideoDetails({});
-    }
-  };
-
   useEffect(() => {
-    fetchVideoStream();
-    fetchVideoDetails();
+    fetchVideoData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 

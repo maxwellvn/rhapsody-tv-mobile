@@ -1,9 +1,9 @@
 import { API_ENDPOINTS } from "@/config/api.config";
 import {
-  ApiResponse,
-  ChannelDetail,
-  ChannelSchedule,
-  ChannelVideosResponse,
+    ApiResponse,
+    ChannelDetail,
+    ChannelSchedule,
+    ChannelVideosResponse,
 } from "@/types/api.types";
 import { api } from "./api.client";
 
@@ -49,14 +49,14 @@ class ChannelService {
    * Subscribe to channel
    */
   async subscribe(id: string): Promise<ApiResponse<void>> {
-    return api.post<void>(API_ENDPOINTS.CHANNELS.SUBSCRIBE(id));
+    return api.post<void>(API_ENDPOINTS.SUBSCRIPTIONS.SUBSCRIBE(id));
   }
 
   /**
    * Unsubscribe from channel
    */
   async unsubscribe(id: string): Promise<ApiResponse<void>> {
-    return api.post<void>(API_ENDPOINTS.CHANNELS.UNSUBSCRIBE(id));
+    return api.post<void>(API_ENDPOINTS.SUBSCRIPTIONS.UNSUBSCRIBE(id));
   }
 }
 

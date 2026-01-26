@@ -1,4 +1,5 @@
 import { channelService } from "@/services/channel.service";
+import { subscriptionService } from "@/services/subscription.service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 /**
@@ -13,6 +14,8 @@ export const channelKeys = {
   schedule: (slug: string, date?: string) =>
     [...channelKeys.all, "schedule", slug, date] as const,
   subscriptions: () => [...channelKeys.all, "subscriptions"] as const,
+  subscriptionStatus: (channelId: string) =>
+    [...channelKeys.all, "subscriptionStatus", channelId] as const,
 };
 
 /**
@@ -62,6 +65,21 @@ export function useChannelSchedule(
       return response.data;
     },
     enabled: !!slug,
+  });
+}
+
+/**
+ * Get subscription status for a channel
+ */
+export function useChannelSubscriptionStatus(channelId?: string) {
+  return useQuery({
+    queryKey: channelKeys.subscriptionStatus(channelId || ""),
+    queryFn: async () => {
+      if (!channelId) return { isSubscribed: false };
+      const response = await subscriptionService.getStatus(channelId);
+      return response.data;
+    },
+    enabled: !!channelId,
   });
 }
 

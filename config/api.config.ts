@@ -5,7 +5,7 @@
 
 export const API_CONFIG = {
   // Backend API base URL
-  BASE_URL: "https://rhapsody-tv-backend.fly.dev/v1",
+  BASE_URL: "http://c0o40k00www4gww4wg8oswgo.102.219.189.97.sslip.io/v1",
 
   // Timeout duration in milliseconds
   TIMEOUT: 30000,
@@ -76,6 +76,7 @@ export const API_ENDPOINTS = {
   // Subscriptions
   SUBSCRIPTIONS: {
     SUBSCRIBE: (channelId: string) => `/subscriptions/channels/${channelId}`,
+    STATUS: (channelId: string) => `/subscriptions/channels/${channelId}`,
     UNSUBSCRIBE: (channelId: string) =>
       `/subscriptions/channels/${channelId}/unsubscribe`,
     SETTINGS: (channelId: string) =>

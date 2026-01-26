@@ -33,6 +33,7 @@ apiClient.interceptors.request.use(
       console.log('📤 API Request:', {
         method: config.method?.toUpperCase(),
         url: config.url,
+        data: config.data,
       });
     }
     
@@ -66,6 +67,7 @@ apiClient.interceptors.response.use(
     
     // Log error in development
     if (__DEV__) {
+      console.log('📥 API Error Response:', error)
       console.error('❌ API Error:', {
         status: error.response?.status,
         url: error.config?.url,

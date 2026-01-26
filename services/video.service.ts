@@ -1,11 +1,11 @@
 import { API_ENDPOINTS } from "@/config/api.config";
 import {
   ApiResponse,
-  LiveNowProgram,
   LiveStreamDetails,
   PaginatedResponse,
   Video,
   VideoListParams,
+  VodVideoResponseDto
 } from "@/types/api.types";
 import { api } from "./api.client";
 
@@ -64,6 +64,15 @@ class VideoService {
    */
   async getVideoDetails(videoId: string): Promise<ApiResponse<Video>> {
     return api.get<Video>(API_ENDPOINTS.VIDEOS.DETAILS(videoId));
+  }
+
+  /**
+   * Get VOD video details (includes playback URL)
+   */
+  async getVodVideo(
+    videoId: string,
+  ): Promise<ApiResponse<VodVideoResponseDto>> {
+    return api.get<VodVideoResponseDto>(API_ENDPOINTS.VOD.DETAILS(videoId));
   }
 
   /**

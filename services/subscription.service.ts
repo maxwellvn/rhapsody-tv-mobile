@@ -2,6 +2,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import {
     ApiResponse,
     ChannelSubscriptionResponseDto,
+    ChannelSubscriptionStatusResponse,
     UpdateChannelSubscriptionSettingsDto,
 } from "@/types/api.types";
 import { api } from "./api.client";
@@ -19,6 +20,17 @@ class SubscriptionService {
   ): Promise<ApiResponse<ChannelSubscriptionResponseDto>> {
     return api.post<ChannelSubscriptionResponseDto>(
       API_ENDPOINTS.SUBSCRIPTIONS.SUBSCRIBE(channelId),
+    );
+  }
+
+  /**
+   * Get subscription status for a channel
+   */
+  async getStatus(
+    channelId: string,
+  ): Promise<ApiResponse<ChannelSubscriptionStatusResponse>> {
+    return api.get<ChannelSubscriptionStatusResponse>(
+      API_ENDPOINTS.SUBSCRIPTIONS.STATUS(channelId),
     );
   }
 
