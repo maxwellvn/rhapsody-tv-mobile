@@ -2351,7 +2351,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Subscription updated successfully",
+            "description": "Unsubscribed from channel successfully",
             "content": {
               "application/json": {
                 "schema": {

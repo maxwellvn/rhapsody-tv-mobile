@@ -114,7 +114,6 @@ export default function VideoScreen() {
   }, [id]);
 
   const handleSubscribe = async () => {
-    // Only check for channelId, slug is optional
     if (!videoDetails.channelId) {
       showError("Channel information not available");
       return;
@@ -136,8 +135,11 @@ export default function VideoScreen() {
         setIsSubscribed(true);
         showSuccess("Subscribed to channel!");
       }
-    } catch {
+    } catch (err) {
+      console.error("Subscription error:", err);
       showError("Failed to update subscription");
+      // Reset the local state on error
+      setIsSubscribed(subscriptionStatus?.isSubscribed ?? false);
     }
   };
 

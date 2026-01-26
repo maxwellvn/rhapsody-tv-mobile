@@ -59,7 +59,15 @@ export default function LiveVideoScreen() {
     hasLiked: socketHasLiked,
     sendComment,
     toggleLike: toggleSocketLike,
+    isConnected: isSocketConnected,
   } = useLivestreamSocket(liveStreamId);
+
+  console.log(
+    "Socket connected:",
+    isSocketConnected,
+    "HasLiked:",
+    socketHasLiked,
+  );
 
   // Get channel and video IDs from liveProgram
   const channelId = liveProgram?.channel?.id;
@@ -97,7 +105,7 @@ export default function LiveVideoScreen() {
 
   // Handle subscribe/unsubscribe
   const handleSubscribe = async () => {
-    if (!channelId || !channelSlug) {
+    if (!channelId) {
       showError("Channel information not available");
       return;
     }
@@ -118,24 +126,40 @@ export default function LiveVideoScreen() {
         setIsSubscribed(true);
         showSuccess("Subscribed to channel!");
       }
-    } catch {
+    } catch (err) {
+      console.error("Subscription error:", err);
       showError("Failed to update subscription");
+      // Reset the local state on error
+      setIsSubscribed(subscriptionStatus?.isSubscribed ?? false);
     }
   };
 
   // Handle like/unlike
   const handleLike = async () => {
+    console.log(
+      "handleLike called - liveStreamId:",
+      liveStreamId,
+      "videoId:",
+      videoId,
+      "isSocketConnected:",
+      isSocketConnected,
+    );
+
     if (liveStreamId) {
+      console.log("Toggling like for livestream");
       try {
         toggleSocketLike();
+        console.log("Like toggled successfully");
         showSuccess(isLiked ? "Removed like" : "Liked!");
-      } catch {
+      } catch (err) {
+        console.error("Error toggling like:", err);
         showError("Failed to update like");
       }
       return;
     }
 
     if (!videoId) {
+      console.log("No videoId available");
       showError("Video information not available");
       return;
     }
@@ -277,7 +301,7 @@ export default function LiveVideoScreen() {
                     isLiked && styles.actionButtonActive,
                   ]}
                   onPress={handleLike}
-                  disabled={isLikeLoading || !videoId}
+                  disabled={isLikeLoading}
                 >
                   {isLikeLoading ? (
                     <ActivityIndicator size="small" color="#000000" />
