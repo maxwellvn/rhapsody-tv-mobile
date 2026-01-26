@@ -1,44 +1,78 @@
-import { styles } from '@/styles/live-chat-modal.styles';
-import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { SocketComment } from "@/hooks/useLivestreamSocket";
+import { styles } from "@/styles/live-chat-modal.styles";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Image,
+  Keyboard,
+  Platform,
   Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
-} from 'react-native';
-
-type ChatMessage = {
-  id: string;
-  username: string;
-  avatar: any;
-  message: string;
-};
+} from "react-native";
 
 type LiveChatModalProps = {
   onClose: () => void;
   viewerCount: string;
+  comments: SocketComment[];
+  onSendMessage: (content: string) => void;
 };
 
-export function LiveChatModal({ onClose, viewerCount }: LiveChatModalProps) {
-  const [message, setMessage] = useState('');
+export function LiveChatModal({
+  onClose,
+  viewerCount,
+  comments,
+  onSendMessage,
+}: LiveChatModalProps) {
+  const [message, setMessage] = useState("");
+  const scrollViewRef = useRef<ScrollView>(null);
+  const keyboardHeight = useRef(new Animated.Value(0)).current;
 
-  // Sample chat messages
-  const messages: ChatMessage[] = Array(10).fill(null).map((_, i) => ({
-    id: `msg-${i}`,
-    username: '@LuisSilva',
-    avatar: require('@/assets/images/Avatar.png'),
-    message: 'What a marvelous time in his presence. It is truly amazing',
-  }));
+  useEffect(() => {
+    const keyboardShowEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const keyboardHideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSubscription = Keyboard.addListener(keyboardShowEvent, (e) => {
+      Animated.timing(keyboardHeight, {
+        toValue: e.endCoordinates.height,
+        duration: Platform.OS === "ios" ? e.duration : 250,
+        useNativeDriver: false,
+      }).start();
+      // Scroll to bottom when keyboard shows
+      setTimeout(
+        () => scrollViewRef.current?.scrollToEnd({ animated: true }),
+        100,
+      );
+    });
+
+    const hideSubscription = Keyboard.addListener(keyboardHideEvent, (e) => {
+      Animated.timing(keyboardHeight, {
+        toValue: 0,
+        duration: Platform.OS === "ios" ? e.duration : 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [keyboardHeight]);
 
   const handleSend = () => {
     if (message.trim()) {
-      // Handle send message
-      console.log('Send message:', message);
-      setMessage('');
+      onSendMessage(message.trim());
+      setMessage("");
     }
+  };
+
+  const scrollToBottom = () => {
+    scrollViewRef.current?.scrollToEnd({ animated: true });
   };
 
   return (
@@ -59,29 +93,36 @@ export function LiveChatModal({ onClose, viewerCount }: LiveChatModalProps) {
 
       {/* Chat Messages */}
       <ScrollView
+        ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={scrollToBottom}
       >
-        {messages.map((msg) => (
+        {comments.map((msg) => (
           <View key={msg.id} style={styles.messageItem}>
             <Image
-              source={msg.avatar}
+              source={require("@/assets/images/Avatar.png")}
               style={styles.messageAvatar}
               resizeMode="contain"
             />
             <View style={styles.messageContent}>
-              <Text style={styles.messageUsername}>{msg.username}</Text>
-              <Text style={styles.messageText}>{msg.message}</Text>
+              <Text style={styles.messageUsername}>
+                {msg.user.fullName || `@${msg.user.id}`}
+              </Text>
+              <Text style={styles.messageText}>{msg.content}</Text>
             </View>
           </View>
         ))}
       </ScrollView>
 
       {/* Input Area */}
-      <View style={styles.inputArea}>
+      <Animated.View
+        style={[styles.inputArea, { marginBottom: keyboardHeight }]}
+      >
         <Image
-          source={require('@/assets/images/Avatar.png')}
+          source={require("@/assets/images/Avatar.png")}
           style={styles.inputAvatar}
           resizeMode="contain"
         />
@@ -93,12 +134,13 @@ export function LiveChatModal({ onClose, viewerCount }: LiveChatModalProps) {
             value={message}
             onChangeText={setMessage}
             multiline
+            onFocus={scrollToBottom}
           />
           <Pressable onPress={handleSend} style={styles.sendButton}>
             <Ionicons name="send" size={20} color="#0000FF" />
           </Pressable>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }

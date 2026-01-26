@@ -2242,6 +2242,52 @@
       }
     },
     "/v1/subscriptions/channels/{channelId}": {
+      "get": {
+        "operationId": "SubscriptionsController_checkSubscription",
+        "parameters": [
+          {
+            "name": "channelId",
+            "required": true,
+            "in": "path",
+            "description": "Channel ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CheckSubscriptionResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check if the current user is subscribed to a channel",
+        "tags": [
+          "Subscriptions"
+        ]
+      },
       "post": {
         "operationId": "SubscriptionsController_subscribe",
         "parameters": [
@@ -4930,6 +4976,31 @@
           "notifyOnNewVideo",
           "notifyOnGoLive",
           "notifyOnNewProgram"
+        ]
+      },
+      "CheckSubscriptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "isSubscribed": {
+            "type": "boolean",
+            "example": true
+          },
+          "subscription": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChannelSubscriptionResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "channelId",
+          "isSubscribed"
         ]
       },
       "UpdateChannelSubscriptionSettingsDto": {

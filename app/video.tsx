@@ -2,6 +2,13 @@ import { Comments } from "@/components/comments";
 import { CommentsModal } from "@/components/uploaded-video/comments-modal";
 import { UploadedVideoPlayer } from "@/components/uploaded-video/uploaded-video-player";
 import { VideoRecommendationCard } from "@/components/video-recommendation-card";
+import { useToast } from "@/context/ToastContext";
+import {
+  useChannelSubscriptionStatus,
+  useSubscribe,
+  useUnsubscribe,
+} from "@/hooks/queries/useChannelQueries";
+import { useLikeStatus, useToggleLike } from "@/hooks/queries/useVodQueries";
 import { videoService } from "@/services/video.service";
 import { styles } from "@/styles/live-video.styles";
 import { formatNumber, formatRelativeTime } from "@/utils/formatters";
@@ -31,10 +38,34 @@ export default function VideoScreen() {
     channelAvatar?: string;
     views?: number;
     publishedAt?: string;
+    channelId?: string;
+    channelSlug?: string;
   }>({});
+
+  const { showSuccess, showError } = useToast();
 
   const fallbackStreamUrl =
     "https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8";
+
+  // Fetch subscription status
+  const { data: subscriptionStatus, isLoading: isCheckingSubscription } =
+    useChannelSubscriptionStatus(videoDetails.channelId);
+
+  // Subscribe/Unsubscribe mutations
+  const subscribeMutation = useSubscribe();
+  const unsubscribeMutation = useUnsubscribe();
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (subscriptionStatus?.isSubscribed !== undefined) {
+      setIsSubscribed(subscriptionStatus.isSubscribed);
+    }
+  }, [subscriptionStatus]);
+
+  // Like status and toggle
+  const { data: likeStatusData } = useLikeStatus(id);
+  const toggleLikeMutation = useToggleLike();
+  const isLiked = likeStatusData?.isLiked ?? false;
 
   const fetchVideoData = async () => {
     // For testing/demo purposes, use a test video if no id is provided
@@ -60,6 +91,9 @@ export default function VideoScreen() {
           channelAvatar: video.channel?.logoUrl,
           views: video.viewCount,
           publishedAt: video.createdAt,
+          // Use video.channel.id if available, otherwise fallback to video.channelId
+          channelId: video.channel?.id || video.channelId,
+          channelSlug: video.channel?.slug,
         });
       } else {
         setVideoUri(fallbackStreamUrl);
@@ -78,6 +112,55 @@ export default function VideoScreen() {
     fetchVideoData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const handleSubscribe = async () => {
+    // Only check for channelId, slug is optional
+    if (!videoDetails.channelId) {
+      showError("Channel information not available");
+      return;
+    }
+
+    try {
+      if (isSubscribed) {
+        await unsubscribeMutation.mutateAsync({
+          id: videoDetails.channelId,
+          slug: videoDetails.channelSlug,
+        });
+        setIsSubscribed(false);
+        showSuccess("Unsubscribed from channel");
+      } else {
+        await subscribeMutation.mutateAsync({
+          id: videoDetails.channelId,
+          slug: videoDetails.channelSlug,
+        });
+        setIsSubscribed(true);
+        showSuccess("Subscribed to channel!");
+      }
+    } catch {
+      showError("Failed to update subscription");
+    }
+  };
+
+  const handleLike = async () => {
+    if (!id) {
+      showError("Video information not available");
+      return;
+    }
+
+    try {
+      await toggleLikeMutation.mutateAsync(id);
+      showSuccess(isLiked ? "Removed like" : "Liked!");
+    } catch {
+      showError("Failed to update like");
+    }
+  };
+
+  const isSubscribeLoading =
+    subscribeMutation.isPending ||
+    unsubscribeMutation.isPending ||
+    isSubscribed === null ||
+    isCheckingSubscription;
+  const isLikeLoading = toggleLikeMutation.isPending;
 
   return (
     <>
@@ -156,17 +239,58 @@ export default function VideoScreen() {
                 contentContainerStyle={styles.actionButtons}
                 style={styles.actionButtonsContainer}
               >
-                <Pressable style={styles.subscribeButton}>
-                  <Text style={styles.subscribeButtonText}>Subscribe</Text>
+                <Pressable
+                  style={[
+                    styles.subscribeButton,
+                    isSubscribed && styles.subscribedButton,
+                  ]}
+                  onPress={handleSubscribe}
+                  disabled={isSubscribeLoading || !videoDetails.channelId}
+                >
+                  {isSubscribeLoading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={isSubscribed ? "#000000" : "#FFFFFF"}
+                    />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.subscribeButtonText,
+                        isSubscribed && styles.subscribedButtonText,
+                      ]}
+                    >
+                      {isSubscribed ? "Subscribed" : "Subscribe"}
+                    </Text>
+                  )}
                 </Pressable>
 
-                <Pressable style={styles.actionButton}>
-                  <Ionicons
-                    name="thumbs-up-outline"
-                    size={dimensions.isTablet ? fs(16) : fs(14)}
-                    color="#000000"
-                  />
-                  <Text style={styles.actionButtonText}>Label</Text>
+                <Pressable
+                  style={[
+                    styles.actionButton,
+                    isLiked && styles.actionButtonActive,
+                  ]}
+                  onPress={handleLike}
+                  disabled={isLikeLoading || !id}
+                >
+                  {isLikeLoading ? (
+                    <ActivityIndicator size="small" color="#000000" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={isLiked ? "thumbs-up" : "thumbs-up-outline"}
+                        size={dimensions.isTablet ? fs(16) : fs(14)}
+                        color={isLiked ? "#E50914" : "#000000"}
+                      />
+                      <Text
+                        style={[
+                          styles.actionButtonText,
+                          isLiked && styles.actionButtonTextActive,
+                        ]}
+                      >
+                        {isLiked ? "Liked" : "Like"}
+                      </Text>
+                    </>
+                  )}
                 </Pressable>
 
                 <Pressable style={styles.actionButton}>

@@ -11,6 +11,7 @@ import {
 
 import { useWatchLivestream } from "@/hooks/queries/useHomepageQueries";
 import { useLikeStatus, useToggleLike } from "@/hooks/queries/useVodQueries";
+import { useLivestreamSocket } from "@/hooks/useLivestreamSocket";
 import { styles } from "@/styles/live-video.styles";
 import { formatRelativeTime } from "@/utils/formatters";
 import { dimensions, fs } from "@/utils/responsive";
@@ -27,8 +28,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-
 
 export default function LiveVideoScreen() {
   const { liveStreamId } = useLocalSearchParams<{
@@ -52,6 +51,15 @@ export default function LiveVideoScreen() {
   } = useWatchLivestream(liveStreamId);
 
   console.log("liveProgram", liveProgram);
+
+  // Socket integration
+  const {
+    comments,
+    viewerCount,
+    hasLiked: socketHasLiked,
+    sendComment,
+    toggleLike: toggleSocketLike,
+  } = useLivestreamSocket(liveStreamId);
 
   // Get channel and video IDs from liveProgram
   const channelId = liveProgram?.channel?.id;
@@ -81,7 +89,11 @@ export default function LiveVideoScreen() {
   // Like status and toggle
   const { data: likeStatusData } = useLikeStatus(videoId);
   const toggleLikeMutation = useToggleLike();
-  const isLiked = likeStatusData?.isLiked ?? false;
+
+  // Use socket like status if available, fallback to REST API status
+  const isLiked = liveStreamId
+    ? socketHasLiked
+    : (likeStatusData?.isLiked ?? false);
 
   // Handle subscribe/unsubscribe
   const handleSubscribe = async () => {
@@ -113,6 +125,16 @@ export default function LiveVideoScreen() {
 
   // Handle like/unlike
   const handleLike = async () => {
+    if (liveStreamId) {
+      try {
+        toggleSocketLike();
+        showSuccess(isLiked ? "Removed like" : "Liked!");
+      } catch {
+        showError("Failed to update like");
+      }
+      return;
+    }
+
     if (!videoId) {
       showError("Video information not available");
       return;
@@ -160,7 +182,11 @@ export default function LiveVideoScreen() {
           /* Live Chat View */
           <LiveChatModal
             onClose={() => setIsChatOpen(false)}
-            viewerCount="500k"
+            viewerCount={
+              viewerCount > 0 ? `${(viewerCount / 1000).toFixed(1)}k` : "0"
+            }
+            comments={comments}
+            onSendMessage={sendComment}
           />
         ) : (
           /* Regular Content */
@@ -197,7 +223,9 @@ export default function LiveVideoScreen() {
                     size={dimensions.isTablet ? fs(18) : fs(16)}
                     color="#737373"
                   />
-                  <Text style={styles.viewCount}>Live now</Text>
+                  <Text style={styles.viewCount}>
+                    {viewerCount > 0 ? `${viewerCount} watching` : "Live now"}
+                  </Text>
                 </View>
                 {liveProgram?.startTime && (
                   <Text style={styles.startedTime}>

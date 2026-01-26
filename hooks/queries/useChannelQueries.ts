@@ -90,14 +90,19 @@ export function useSubscribe() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, slug }: { id: string; slug: string }) => {
+    mutationFn: async ({ id, slug }: { id: string; slug?: string }) => {
       await channelService.subscribe(id);
       return { id, slug };
     },
-    onSuccess: ({ slug }) => {
+    onSuccess: ({ id, slug }) => {
       // Invalidate channel details to refetch subscriber count and subscription status
-      queryClient.invalidateQueries({ queryKey: channelKeys.detail(slug) });
+      if (slug) {
+        queryClient.invalidateQueries({ queryKey: channelKeys.detail(slug) });
+      }
       queryClient.invalidateQueries({ queryKey: channelKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: channelKeys.subscriptionStatus(id),
+      });
     },
   });
 }
@@ -109,13 +114,18 @@ export function useUnsubscribe() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, slug }: { id: string; slug: string }) => {
+    mutationFn: async ({ id, slug }: { id: string; slug?: string }) => {
       await channelService.unsubscribe(id);
       return { id, slug };
     },
-    onSuccess: ({ slug }) => {
-      queryClient.invalidateQueries({ queryKey: channelKeys.detail(slug) });
+    onSuccess: ({ id, slug }) => {
+      if (slug) {
+        queryClient.invalidateQueries({ queryKey: channelKeys.detail(slug) });
+      }
       queryClient.invalidateQueries({ queryKey: channelKeys.subscriptions() });
+      queryClient.invalidateQueries({
+        queryKey: channelKeys.subscriptionStatus(id),
+      });
     },
   });
 }
