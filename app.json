@@ -48,8 +48,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c873b3f5-2d77-4d4e-a61c-ee33fd614c9e"
+        "projectId": "70fbc464-4c2c-4cb9-be76-008a04f9ca7f"
       }
-    }
+    },
+    "owner": "derrickkoko"
   }
 }
