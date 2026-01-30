@@ -8,12 +8,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -91,7 +91,10 @@ export default function VerifyEmailScreen() {
             showSuccess("Email verified successfully!");
             // Small delay to show success toast before navigation
             setTimeout(() => {
-              router.push("/(tabs)");
+              router.replace({
+                pathname: "/(auth)/signin",
+                params: { email },
+              });
             }, 1000);
           }
         },
@@ -110,7 +113,7 @@ export default function VerifyEmailScreen() {
           } else {
             showError(
               error.message ||
-              "An error occurred while verifying your email. Please try again.",
+                "An error occurred while verifying your email. Please try again.",
             );
           }
         },
@@ -135,7 +138,7 @@ export default function VerifyEmailScreen() {
         console.error("Resend code error:", error);
         showError(
           error.message ||
-          "Failed to resend verification code. Please try again.",
+            "Failed to resend verification code. Please try again.",
         );
       },
     });

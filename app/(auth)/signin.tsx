@@ -5,23 +5,24 @@ import { useLogin } from "@/hooks/mutations";
 import { styles } from "@/styles/register.styles";
 import { storage } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignInScreen() {
   const router = useRouter();
+  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
   const { showError, showSuccess, showWarning } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -29,6 +30,12 @@ export default function SignInScreen() {
   // Form fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (typeof emailParam === "string" && emailParam.trim()) {
+      setEmail(emailParam.trim().toLowerCase());
+    }
+  }, [emailParam]);
 
   // Use Tanstack Query login mutation
   const loginMutation = useLogin();
@@ -102,7 +109,7 @@ export default function SignInScreen() {
           } else {
             showError(
               error.message ||
-              "An error occurred during sign in. Please try again.",
+                "An error occurred during sign in. Please try again.",
             );
           }
         },

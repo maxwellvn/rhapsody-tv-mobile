@@ -62,7 +62,6 @@ export function useLogin() {
  * Register mutation
  */
 export function useRegister() {
-  const { login } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -71,14 +70,8 @@ export function useRegister() {
       return response.data;
     },
     onSuccess: async (data) => {
-      // Save auth data to context
-      await login(data);
-
       // Invalidate and refetch user-related queries
       queryClient.invalidateQueries({ queryKey: authKeys.all });
-
-      // Navigate to home
-      router.replace("/(tabs)");
     },
     onError: (error: any) => {
       console.error("Registration error:", error);
