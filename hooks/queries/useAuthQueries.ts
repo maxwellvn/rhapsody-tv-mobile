@@ -97,8 +97,8 @@ export function useLogout() {
       // Clear all queries
       queryClient.clear();
 
-      // Navigate to login
-      router.replace("/(auth)/login" as any);
+      // Navigate to onboarding
+      router.replace("/onboarding");
     },
   });
 }

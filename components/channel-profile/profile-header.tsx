@@ -1,5 +1,6 @@
 import { Button } from "@/components/button";
 import {
+  useChannelSubscriptionStatus,
   useSubscribe,
   useUnsubscribe,
 } from "@/hooks/queries/useChannelQueries";
@@ -13,14 +14,16 @@ type ChannelProfileHeaderProps = {
 };
 
 export function ChannelProfileHeader({ channel }: ChannelProfileHeaderProps) {
+  const { data: subscriptionStatus } = useChannelSubscriptionStatus(channel.id);
   const subscribeMutation = useSubscribe();
   const unsubscribeMutation = useUnsubscribe();
 
+  const isSubscribed = subscriptionStatus?.isSubscribed ?? false;
   const isSubscribing =
     subscribeMutation.isPending || unsubscribeMutation.isPending;
 
   const handleToggleSubscribe = () => {
-    if (channel.isSubscribed) {
+    if (isSubscribed) {
       unsubscribeMutation.mutate({ id: channel.id, slug: channel.slug });
     } else {
       subscribeMutation.mutate({ id: channel.id, slug: channel.slug });
@@ -75,18 +78,18 @@ export function ChannelProfileHeader({ channel }: ChannelProfileHeaderProps) {
           onPress={handleToggleSubscribe}
           style={[
             styles.subscribeButton,
-            channel.isSubscribed && styles.subscribedButton,
+            isSubscribed && styles.subscribedButton,
             isSubscribing && styles.disabledButton,
           ]}
           textStyle={[
             styles.subscribeButtonText,
-            channel.isSubscribed && styles.subscribedButtonText,
+            isSubscribed && styles.subscribedButtonText,
           ]}
           disabled={isSubscribing}
         >
           {isSubscribing ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : channel.isSubscribed ? (
+          ) : isSubscribed ? (
             "Subscribed"
           ) : (
             "Subscribe"

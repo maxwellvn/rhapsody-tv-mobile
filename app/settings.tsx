@@ -1,6 +1,7 @@
 import { SettingsItem } from '@/components/settings/settings-item';
 import { SettingsSection } from '@/components/settings/settings-section';
 import { SettingsTitle } from '@/components/settings/settings-title';
+import { useLogout } from '@/hooks/queries/useAuthQueries';
 import { FONTS } from '@/styles/global';
 import { fs, hp, spacing, wp } from '@/utils/responsive';
 import { router, Stack } from 'expo-router';
@@ -8,6 +9,8 @@ import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
+
   const handleBack = () => {
     router.back();
   };
@@ -45,7 +48,7 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = () => {
-    console.log('Sign out pressed');
+    logout();
   };
 
   return (
@@ -53,7 +56,7 @@ export default function SettingsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        
+
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={handleBack} style={styles.backButton} hitSlop={8}>
@@ -67,7 +70,7 @@ export default function SettingsScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >

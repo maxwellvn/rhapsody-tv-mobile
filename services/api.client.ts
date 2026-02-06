@@ -1,7 +1,12 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { API_CONFIG } from '@/config/api.config';
-import { storage } from '@/utils/storage';
-import { ApiError, ApiResponse } from '@/types/api.types';
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+} from "axios";
+import { API_CONFIG } from "@/config/api.config";
+import { storage } from "@/utils/storage";
+import { ApiError, ApiResponse } from "@/types/api.types";
 
 /**
  * Create Axios instance with default configuration
@@ -10,8 +15,8 @@ const apiClient: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
   timeout: API_CONFIG.TIMEOUT,
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 
@@ -23,26 +28,22 @@ apiClient.interceptors.request.use(
   async (config) => {
     // Get access token from storage
     const token = await storage.getAccessToken();
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // Log request in development
-    if (__DEV__) {
-      console.log('📤 API Request:', {
-        method: config.method?.toUpperCase(),
-        url: config.url,
-        data: config.data,
-      });
-    }
-    
+
+    // // Log request in development
+    // if (__DEV__) {
+    //   console.log(`📤 API Request: ${JSON.stringify(config)}`);
+    // }
+
     return config;
   },
   (error) => {
-    console.error('❌ Request Error:', error);
+    console.error("❌ Request Error:", error);
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -53,68 +54,67 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log response in development
     if (__DEV__) {
-      console.log('📥 API Response:', {
-        status: response.status,
-        url: response.config.url,
-        success: response.data?.success,
-      });
+      console.log(`📥 API Response: ${JSON.stringify(response.data)}`);
     }
-    
+
     return response;
   },
   async (error: AxiosError<ApiError>) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
-    
+    const originalRequest = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+    };
+
     // Log error in development
     if (__DEV__) {
-      console.log('📥 API Error Response:', error)
-      console.error('❌ API Error:', {
+      console.log("📥 API Error Response:", error);
+      console.error("❌ API Error:", {
         status: error.response?.status,
         url: error.config?.url,
         success: false,
       });
     }
-    
+
     // Handle 401 Unauthorized - Token expired
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       try {
         // Try to refresh token
         const refreshToken = await storage.getRefreshToken();
-        
+
         if (refreshToken) {
           const response = await axios.post(
             `${API_CONFIG.BASE_URL}/auth/refresh`,
-            { refreshToken }
+            { refreshToken },
           );
-          
-          const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-          
+
+          const { accessToken, refreshToken: newRefreshToken } =
+            response.data.data;
+
           // Save new tokens
           await storage.saveTokens(accessToken, newRefreshToken);
-          
+
           // Retry original request with new token
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           }
-          
+
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
         // Refresh failed - clear tokens and redirect to login
         await storage.clearTokens();
         await storage.clearUserData();
-        
+
         // You can emit an event here to navigate to login
         // EventEmitter.emit('UNAUTHORIZED');
-        
+
         return Promise.reject(refreshError);
       }
     }
-    
+
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -124,7 +124,10 @@ class ApiClient {
   /**
    * GET request
    */
-  async get<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async get<T>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await apiClient.get<ApiResponse<T>>(url, config);
       return response.data;
@@ -136,7 +139,11 @@ class ApiClient {
   /**
    * POST request
    */
-  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async post<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await apiClient.post<ApiResponse<T>>(url, data, config);
       return response.data;
@@ -148,7 +155,11 @@ class ApiClient {
   /**
    * PUT request
    */
-  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async put<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await apiClient.put<ApiResponse<T>>(url, data, config);
       return response.data;
@@ -160,7 +171,11 @@ class ApiClient {
   /**
    * PATCH request
    */
-  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async patch<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await apiClient.patch<ApiResponse<T>>(url, data, config);
       return response.data;
@@ -172,7 +187,10 @@ class ApiClient {
   /**
    * DELETE request
    */
-  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+  async delete<T>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await apiClient.delete<ApiResponse<T>>(url, config);
       return response.data;
@@ -187,12 +205,12 @@ class ApiClient {
   async upload<T>(
     url: string,
     formData: FormData,
-    onUploadProgress?: (progressEvent: any) => void
+    onUploadProgress?: (progressEvent: any) => void,
   ): Promise<ApiResponse<T>> {
     try {
       const response = await apiClient.post<ApiResponse<T>>(url, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
         onUploadProgress,
       });
@@ -208,12 +226,12 @@ class ApiClient {
   private handleError(error: any): ApiError {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<ApiError>;
-      
+
       if (axiosError.response) {
         // Server responded with error
         return {
           success: false,
-          message: axiosError.response.data?.message || 'An error occurred',
+          message: axiosError.response.data?.message || "An error occurred",
           errors: axiosError.response.data?.errors,
           statusCode: axiosError.response.status,
         };
@@ -221,16 +239,17 @@ class ApiClient {
         // Request made but no response
         return {
           success: false,
-          message: 'No response from server. Please check your internet connection.',
+          message:
+            "No response from server. Please check your internet connection.",
           statusCode: 0,
         };
       }
     }
-    
+
     // Unknown error
     return {
       success: false,
-      message: 'An unexpected error occurred',
+      message: "An unexpected error occurred",
       statusCode: 500,
     };
   }
