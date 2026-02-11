@@ -1,21 +1,21 @@
-import { fs, hp, spacing, wp } from '@/utils/responsive';
-import { StyleSheet } from 'react-native';
-import { FONTS } from './global';
+import { fs, hp, spacing, wp } from "@/utils/responsive";
+import { StyleSheet } from "react-native";
+import { FONTS } from "./global";
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   tabsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginHorizontal: spacing.xl,
     marginVertical: hp(8),
     padding: wp(3),
     gap: spacing.xs,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
     borderRadius: 8,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   tab: {
     paddingHorizontal: wp(12),
@@ -23,8 +23,8 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
   },
   activeTab: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000000',
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -36,14 +36,40 @@ export const styles = StyleSheet.create({
   tabText: {
     fontSize: fs(14),
     fontFamily: FONTS.medium,
-    color: '#0A0A0A',
+    color: "#0A0A0A",
   },
   activeTabText: {
-    color: '#000000',
+    color: "#000000",
     fontFamily: FONTS.medium,
   },
   scrollView: {
     flex: 1,
+  },
+  loadingContainer: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: hp(8),
+  },
+  errorContainer: {
+    marginHorizontal: spacing.xl,
+    marginTop: hp(8),
+    padding: spacing.md,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 8,
+  },
+  errorText: {
+    fontSize: fs(14),
+    fontFamily: FONTS.medium,
+    color: "#B91C1C",
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: hp(24),
+    paddingHorizontal: spacing.xl,
+  },
+  emptyText: {
+    fontSize: fs(14),
+    fontFamily: FONTS.medium,
+    color: "#6B7280",
   },
   content: {
     paddingHorizontal: spacing.xl,

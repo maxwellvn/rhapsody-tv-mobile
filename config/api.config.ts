@@ -6,8 +6,8 @@
 export const API_CONFIG = {
   // Backend API base URL
   // BASE_URL: "http://localhost:3000/v1", // Use for web or iOS Simulator
-  BASE_URL: "http://192.168.0.84:3000/v1", // Use your machine's IP for physical devices/Android emulator
-  // BASE_URL: "https://rtv.movortech.com/v1",
+  // BASE_URL: "http://192.168.0.84:3000/v1", // Use your machine's IP for physical devices/Android emulator
+  BASE_URL: "https://rtv.movortech.com/v1",
 
   // Timeout duration in milliseconds
   TIMEOUT: 30000,
