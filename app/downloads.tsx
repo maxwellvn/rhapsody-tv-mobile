@@ -1,32 +1,61 @@
-import { SettingsItemArrow } from '@/components/settings/settings-item-arrow';
-import { SettingsItemToggle } from '@/components/settings/settings-item-toggle';
-import { SettingsSection } from '@/components/settings/settings-section';
-import { FONTS } from '@/styles/global';
-import { fs, hp, spacing, wp } from '@/utils/responsive';
-import { router, Stack } from 'expo-router';
-import { useState } from 'react';
-import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SettingsItemArrow } from "@/components/settings/settings-item-arrow";
+import { SettingsItemToggle } from "@/components/settings/settings-item-toggle";
+import { SettingsSection } from "@/components/settings/settings-section";
+import {
+    useUpdateUserSettings,
+    useUserSettings,
+} from "@/hooks/queries/useUserQueries";
+import { FONTS } from "@/styles/global";
+import { fs, hp, spacing, wp } from "@/utils/responsive";
+import { router, Stack } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Image,
+    Pressable,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DownloadsScreen() {
+  const { data: settings, isLoading } = useUserSettings();
+  const { mutate: updateSettings, isPending: isUpdating } =
+    useUpdateUserSettings();
+
   const [downloadOverWifiOnly, setDownloadOverWifiOnly] = useState(false);
-  const [downloadQuality, setDownloadQuality] = useState('Medium (360p)');
+  const [downloadQuality, setDownloadQuality] = useState("medium");
+
+  useEffect(() => {
+    if (settings) {
+      setDownloadOverWifiOnly(settings.downloads.downloadOverWifiOnly);
+      setDownloadQuality(settings.downloads.downloadQuality);
+    }
+  }, [settings]);
 
   const handleBack = () => {
     router.back();
   };
 
   const handleDownloadQuality = () => {
-    router.push('/download-quality');
+    router.push("/download-quality");
   };
 
   const handleDeleteDownloads = () => {
-    console.log('Delete Downloads pressed');
+    console.log("Delete Downloads pressed");
     // Show confirmation dialog or navigate to delete downloads page
   };
 
   const handleWifiToggle = (value: boolean) => {
     setDownloadOverWifiOnly(value);
+    updateSettings({
+      downloads: {
+        downloadOverWifiOnly: value,
+      },
+    });
   };
 
   return (
@@ -34,12 +63,12 @@ export default function DownloadsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        
+
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={handleBack} style={styles.backButton} hitSlop={8}>
             <Image
-              source={require('@/assets/Icons/back.png')}
+              source={require("@/assets/Icons/back.png")}
               style={styles.backIcon}
               resizeMode="contain"
             />
@@ -48,10 +77,16 @@ export default function DownloadsScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
+          {(isLoading || isUpdating) && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#000" />
+            </View>
+          )}
+
           <SettingsSection>
             <SettingsItemArrow
               label="Download Quality"
@@ -70,7 +105,10 @@ export default function DownloadsScreen() {
 
           <SettingsSection>
             <View style={styles.deleteItem}>
-              <Pressable onPress={handleDeleteDownloads} style={styles.deleteButton}>
+              <Pressable
+                onPress={handleDeleteDownloads}
+                style={styles.deleteButton}
+              >
                 <Text style={styles.deleteLabel}>Delete Downloads</Text>
               </Pressable>
             </View>
@@ -87,15 +125,15 @@ export default function DownloadsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.xl,
     paddingTop: hp(10),
     paddingBottom: hp(12),
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   backButton: {
     padding: wp(4),
@@ -103,13 +141,13 @@ const styles = StyleSheet.create({
   backIcon: {
     width: wp(24),
     height: hp(24),
-    tintColor: '#000000',
+    tintColor: "#000000",
   },
   headerTitle: {
     flex: 1,
     fontSize: fs(20),
     fontFamily: FONTS.bold,
-    color: '#000000',
+    color: "#000000",
     marginLeft: spacing.md,
   },
   headerSpacer: {
@@ -118,18 +156,22 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  loadingContainer: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: hp(8),
+  },
   deleteItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   deleteButton: {
     paddingHorizontal: spacing.xl,
     paddingVertical: hp(14),
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   deleteLabel: {
     fontSize: fs(16),
     fontFamily: FONTS.regular,
-    color: '#000000',
+    color: "#000000",
   },
   bottomSpacer: {
     height: hp(20),

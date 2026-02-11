@@ -1,12 +1,13 @@
-import axios, {
-  AxiosError,
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
-} from "axios";
 import { API_CONFIG } from "@/config/api.config";
-import { storage } from "@/utils/storage";
 import { ApiError, ApiResponse } from "@/types/api.types";
+import { storage } from "@/utils/storage";
+import { toastService } from "@/utils/toast.service";
+import axios, {
+    AxiosError,
+    AxiosInstance,
+    AxiosRequestConfig,
+    AxiosResponse,
+} from "axios";
 
 /**
  * Create Axios instance with default configuration
@@ -51,10 +52,20 @@ apiClient.interceptors.request.use(
  * Handles errors and token refresh
  */
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
+  (response: AxiosResponse<ApiResponse>) => {
     // Log response in development
     if (__DEV__) {
       console.log(`📥 API Response: ${JSON.stringify(response.data)}`);
+    }
+
+    const config = response.config as AxiosRequestConfig & {
+      skipToast?: boolean;
+    };
+    const method = config.method?.toLowerCase();
+    const message = response.data?.message;
+
+    if (!config.skipToast && message && method && method !== "get") {
+      toastService.success(message);
     }
 
     return response;
@@ -62,6 +73,7 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiError>) => {
     const originalRequest = error.config as AxiosRequestConfig & {
       _retry?: boolean;
+      skipToast?: boolean;
     };
 
     // Log error in development
@@ -72,6 +84,11 @@ apiClient.interceptors.response.use(
         url: error.config?.url,
         success: false,
       });
+    }
+
+    const errorMessage = error.response?.data?.message;
+    if (errorMessage && !originalRequest?.skipToast) {
+      toastService.error(errorMessage);
     }
 
     // Handle 401 Unauthorized - Token expired

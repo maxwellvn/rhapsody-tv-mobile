@@ -3,6 +3,7 @@ import { CommentsModal } from "@/components/uploaded-video/comments-modal";
 import { UploadedVideoPlayer } from "@/components/uploaded-video/uploaded-video-player";
 import { VideoRecommendationCard } from "@/components/video-recommendation-card";
 import { useToast } from "@/context/ToastContext";
+import { useVideoOverlay } from "@/context/VideoOverlayContext";
 import {
   useChannelSubscriptionStatus,
   useSubscribe,
@@ -14,7 +15,7 @@ import { styles } from "@/styles/live-video.styles";
 import { formatNumber, formatRelativeTime } from "@/utils/formatters";
 import { dimensions, fs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
@@ -157,6 +158,34 @@ export default function VideoScreen() {
     }
   };
 
+  // Miniplayer Integration
+  const { minimize, close, activeVideo } = useVideoOverlay();
+  const router = useRouter();
+
+  // Check for handover on mount
+  useEffect(() => {
+    if (activeVideo?.videoId === id) {
+      close();
+    }
+  }, [id, activeVideo]);
+
+  const handleMinimize = () => {
+    if (!videoDetails.title) return; // Wait for data
+
+    minimize({
+      videoUri: videoUri || fallbackStreamUrl,
+      title: videoDetails.title,
+      channelName: videoDetails.channelName,
+      channelAvatar: videoDetails.channelAvatar,
+      isLive: false,
+      videoId: id,
+      channelId: videoDetails.channelId,
+      originalRoute: '/video'
+    });
+    router.back();
+  };
+
+
   const isSubscribeLoading =
     subscribeMutation.isPending ||
     unsubscribeMutation.isPending ||
@@ -180,6 +209,7 @@ export default function VideoScreen() {
           <UploadedVideoPlayer
             videoUri={videoUri}
             thumbnailSource={require("@/assets/images/Image-10.png")}
+            onMinimize={handleMinimize}
           />
         )}
 

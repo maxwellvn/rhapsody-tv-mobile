@@ -26,7 +26,7 @@ class UserService {
    * Update user profile
    */
   async updateProfile(data: Partial<User>): Promise<ApiResponse<User>> {
-    return api.put<User>(API_ENDPOINTS.USER.UPDATE_PROFILE, data);
+    return api.patch<User>(API_ENDPOINTS.USER.UPDATE_PROFILE, data);
   }
 
   /**

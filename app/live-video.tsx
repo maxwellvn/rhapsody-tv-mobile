@@ -9,6 +9,7 @@ import {
   useUnsubscribe,
 } from "@/hooks/queries/useChannelQueries";
 
+import { useVideoOverlay } from "@/context/VideoOverlayContext";
 import { useWatchLivestream } from "@/hooks/queries/useHomepageQueries";
 import { useLikeStatus, useToggleLike } from "@/hooks/queries/useVodQueries";
 import { useLivestreamSocket } from "@/hooks/useLivestreamSocket";
@@ -16,7 +17,7 @@ import { styles } from "@/styles/live-video.styles";
 import { formatRelativeTime } from "@/utils/formatters";
 import { dimensions, fs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -172,6 +173,35 @@ export default function LiveVideoScreen() {
     }
   };
 
+  // Miniplayer Integration
+  const { minimize, close, activeVideo } = useVideoOverlay();
+  const router = useRouter();
+
+  // Check for handover on mount
+  useEffect(() => {
+    if (activeVideo?.videoId === liveStreamId) {
+      // We are entering the screen for the video that was playing in miniplayer
+      close(); // Stop miniplayer so we can take over custom playback
+    }
+  }, [liveStreamId, activeVideo]);
+
+  const handleMinimize = () => {
+    if (!liveProgram) return;
+
+    minimize({
+      videoUri: liveProgram.rtmpUrl || fallbackStreamUrl,
+      title: liveProgram.title,
+      channelName: liveProgram.channel?.name,
+      channelAvatar: liveProgram.channel?.logoUrl,
+      isLive: true,
+      videoId: liveStreamId,
+      channelId: channelId,
+      originalRoute: '/live-video'
+    });
+
+    router.back();
+  };
+
   const isSubscribeLoading =
     subscribeMutation.isPending ||
     unsubscribeMutation.isPending ||
@@ -199,6 +229,7 @@ export default function LiveVideoScreen() {
             videoUri={videoUri}
             thumbnailSource={require("@/assets/images/carusel-2.png")}
             isLive={true}
+            onMinimize={handleMinimize}
           />
         )}
 

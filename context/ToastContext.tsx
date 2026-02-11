@@ -1,7 +1,15 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Toast } from '@/components/toast';
+import { Toast } from "@/components/toast";
+import { toastService } from "@/utils/toast.service";
+import {
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
 
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+export type ToastType = "success" | "error" | "warning" | "info";
 
 export interface ToastMessage {
   id: string;
@@ -32,8 +40,9 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
   }, []);
 
   const showToast = useCallback(
-    (message: string, type: ToastType = 'info', duration: number = 3000) => {
-      const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    (message: string, type: ToastType = "info", duration: number = 3000) => {
+      const id =
+        Date.now().toString() + Math.random().toString(36).substr(2, 9);
       const newToast: ToastMessage = {
         id,
         message,
@@ -50,36 +59,40 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
         }, duration);
       }
     },
-    [removeToast]
+    [removeToast],
   );
 
   const showSuccess = useCallback(
     (message: string, duration?: number) => {
-      showToast(message, 'success', duration);
+      showToast(message, "success", duration);
     },
-    [showToast]
+    [showToast],
   );
 
   const showError = useCallback(
     (message: string, duration?: number) => {
-      showToast(message, 'error', duration);
+      showToast(message, "error", duration);
     },
-    [showToast]
+    [showToast],
   );
 
   const showWarning = useCallback(
     (message: string, duration?: number) => {
-      showToast(message, 'warning', duration);
+      showToast(message, "warning", duration);
     },
-    [showToast]
+    [showToast],
   );
 
   const showInfo = useCallback(
     (message: string, duration?: number) => {
-      showToast(message, 'info', duration);
+      showToast(message, "info", duration);
     },
-    [showToast]
+    [showToast],
   );
+
+  useEffect(() => {
+    toastService.register(showToast);
+  }, [showToast]);
 
   const value: ToastContextType = {
     showToast,
@@ -100,7 +113,7 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (context === undefined) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error("useToast must be used within a ToastProvider");
   }
   return context;
 };

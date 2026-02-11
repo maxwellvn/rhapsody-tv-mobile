@@ -1,0 +1,1168 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/users": {
+      "post": {
+        "operationId": "UserController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new user (Admin only)",
+        "tags": [
+          "Users"
+        ]
+      },
+      "get": {
+        "operationId": "UserController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PaginatedUsersResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all users (Admin only)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/users/me": {
+      "get": {
+        "operationId": "UserController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user profile",
+        "tags": [
+          "Users"
+        ]
+      },
+      "patch": {
+        "operationId": "UserController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update current user profile",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "operationId": "UserController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user by ID (Admin only)",
+        "tags": [
+          "Users"
+        ]
+      },
+      "patch": {
+        "operationId": "UserController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update user by ID (Admin only)",
+        "tags": [
+          "Users"
+        ]
+      },
+      "delete": {
+        "operationId": "UserController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete user by ID (Admin only)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/users/me/settings": {
+      "get": {
+        "operationId": "UserController_getSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Settings retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserSettingsResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user settings",
+        "tags": [
+          "Users"
+        ]
+      },
+      "patch": {
+        "operationId": "UserController_updateSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserSettingsResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update current user settings",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/users/me/watchlist": {
+      "get": {
+        "operationId": "UserController_getWatchlist",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Watchlist retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PaginatedWatchlistResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user watchlist",
+        "tags": [
+          "Users"
+        ]
+      },
+      "post": {
+        "operationId": "UserController_addToWatchlist",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToWatchlistDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Video added to watchlist successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a video to current user watchlist",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/users/me/watchlist/{videoId}": {
+      "delete": {
+        "operationId": "UserController_removeFromWatchlist",
+        "parameters": [
+          {
+            "name": "videoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Video removed from watchlist successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a video from current user watchlist",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/users/me/history": {
+      "get": {
+        "operationId": "UserController_getWatchHistory",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Watch history retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PaginatedWatchHistoryResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user watch history",
+        "tags": [
+          "Users"
+        ]
+      },
+      "delete": {
+        "operationId": "UserController_clearWatchHistory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Watch history cleared successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clear current user watch history",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/users/me/history/{videoId}": {
+      "delete": {
+        "operationId": "UserController_removeFromWatchHistory",
+        "parameters": [
+          {
+            "name": "videoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Video removed from watch history successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a video from current user watch history",
+        "tags": [
+          "Users"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Rhapsody TV API - Users",
+    "description": "User endpoints",
+    "version": "1.0",
+    "contact": {
+
+    }
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "ApiSuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Operation successful"
+          },
+          "data": {
+            "type": "object",
+            "description": "Response payload"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.doe@example.com"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "roles": {
+            "type": "array",
+            "example": [
+              "user"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin"
+              ]
+            }
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "isEmailVerified": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "roles",
+          "isActive",
+          "isEmailVerified"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "Full name of the user"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.doe@example.com",
+            "description": "Email address"
+          },
+          "password": {
+            "type": "string",
+            "example": "StrongP@ssw0rd",
+            "description": "Password (min 8 characters)"
+          },
+          "roles": {
+            "type": "array",
+            "example": [
+              "user"
+            ],
+            "description": "User roles",
+            "items": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin"
+              ]
+            }
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "password"
+        ]
+      },
+      "PaginatedUsersResponseDto": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 42
+          },
+          "pages": {
+            "type": "number",
+            "example": 5
+          }
+        },
+        "required": [
+          "users",
+          "total",
+          "pages"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "Full name of the user"
+          },
+          "roles": {
+            "type": "array",
+            "example": [
+              "user"
+            ],
+            "description": "User roles",
+            "items": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin"
+              ]
+            }
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the user account is active"
+          },
+          "isEmailVerified": {
+            "type": "boolean",
+            "description": "Whether the email has been verified"
+          }
+        }
+      },
+      "UserGeneralSettingsDto": {
+        "type": "object",
+        "properties": {
+          "appLanguage": {
+            "type": "string",
+            "example": "en"
+          },
+          "autoRotateScreen": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "appLanguage",
+          "autoRotateScreen"
+        ]
+      },
+      "UserNotificationSettingsDto": {
+        "type": "object",
+        "properties": {
+          "subscriptions": {
+            "type": "boolean",
+            "example": true
+          },
+          "recommendedVideos": {
+            "type": "boolean",
+            "example": true
+          },
+          "activityOnMyComments": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "subscriptions",
+          "recommendedVideos",
+          "activityOnMyComments"
+        ]
+      },
+      "UserQualitySettingsDto": {
+        "type": "object",
+        "properties": {
+          "videoQualityMobile": {
+            "type": "string",
+            "example": "auto"
+          },
+          "videoQualityWifi": {
+            "type": "string",
+            "example": "auto"
+          },
+          "audioQuality": {
+            "type": "string",
+            "example": "auto"
+          }
+        },
+        "required": [
+          "videoQualityMobile",
+          "videoQualityWifi",
+          "audioQuality"
+        ]
+      },
+      "UserDownloadSettingsDto": {
+        "type": "object",
+        "properties": {
+          "downloadQuality": {
+            "type": "string",
+            "example": "medium"
+          },
+          "downloadOverWifiOnly": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "downloadQuality",
+          "downloadOverWifiOnly"
+        ]
+      },
+      "UserSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "general": {
+            "$ref": "#/components/schemas/UserGeneralSettingsDto"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/UserNotificationSettingsDto"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/UserQualitySettingsDto"
+          },
+          "downloads": {
+            "$ref": "#/components/schemas/UserDownloadSettingsDto"
+          }
+        },
+        "required": [
+          "general",
+          "notifications",
+          "quality",
+          "downloads"
+        ]
+      },
+      "UpdateUserGeneralSettingsDto": {
+        "type": "object",
+        "properties": {
+          "appLanguage": {
+            "type": "string",
+            "example": "en"
+          },
+          "autoRotateScreen": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "UpdateUserNotificationSettingsDto": {
+        "type": "object",
+        "properties": {
+          "subscriptions": {
+            "type": "boolean",
+            "example": true
+          },
+          "recommendedVideos": {
+            "type": "boolean",
+            "example": true
+          },
+          "activityOnMyComments": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "UpdateUserQualitySettingsDto": {
+        "type": "object",
+        "properties": {
+          "videoQualityMobile": {
+            "type": "string",
+            "example": "auto"
+          },
+          "videoQualityWifi": {
+            "type": "string",
+            "example": "auto"
+          },
+          "audioQuality": {
+            "type": "string",
+            "example": "auto"
+          }
+        }
+      },
+      "UpdateUserDownloadSettingsDto": {
+        "type": "object",
+        "properties": {
+          "downloadQuality": {
+            "type": "string",
+            "example": "medium"
+          },
+          "downloadOverWifiOnly": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "UpdateUserSettingsDto": {
+        "type": "object",
+        "properties": {
+          "general": {
+            "$ref": "#/components/schemas/UpdateUserGeneralSettingsDto"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/UpdateUserNotificationSettingsDto"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/UpdateUserQualitySettingsDto"
+          },
+          "downloads": {
+            "$ref": "#/components/schemas/UpdateUserDownloadSettingsDto"
+          }
+        }
+      },
+      "WatchlistItemDto": {
+        "type": "object",
+        "properties": {
+          "video": {
+            "type": "object"
+          },
+          "addedAt": {
+            "type": "string",
+            "example": "2026-01-15T08:00:00.000Z"
+          }
+        },
+        "required": [
+          "video",
+          "addedAt"
+        ]
+      },
+      "PaginatedWatchlistResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchlistItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of watchlist items"
+          },
+          "page": {
+            "type": "number",
+            "description": "Current page"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "AddToWatchlistDto": {
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011",
+            "description": "Video ID"
+          }
+        },
+        "required": [
+          "videoId"
+        ]
+      },
+      "WatchHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "video": {
+            "type": "object"
+          },
+          "progressSeconds": {
+            "type": "number",
+            "example": 120
+          },
+          "durationSeconds": {
+            "type": "number",
+            "example": 3600
+          },
+          "watchedAt": {
+            "type": "string",
+            "example": "2026-01-15T08:00:00.000Z"
+          }
+        },
+        "required": [
+          "video",
+          "progressSeconds",
+          "durationSeconds",
+          "watchedAt"
+        ]
+      },
+      "PaginatedWatchHistoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchHistoryItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of watch history items"
+          },
+          "page": {
+            "type": "number",
+            "description": "Current page"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      }
+    }
+  }
+}

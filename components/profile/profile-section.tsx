@@ -1,7 +1,7 @@
-import { FONTS } from '@/styles/global';
-import { fs, hp, spacing } from '@/utils/responsive';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ProfileVideoCard } from './video-card';
+import { FONTS } from "@/styles/global";
+import { fs, hp, spacing } from "@/utils/responsive";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ProfileVideoCard } from "./video-card";
 
 type ProfileSectionProps = {
   title: string;
@@ -13,10 +13,15 @@ type ProfileSectionProps = {
     badgeColor?: string;
     showBadge?: boolean;
     onPress?: () => void;
+    onRemovePress?: () => void;
   }[];
 };
 
-export function ProfileSection({ title, onSeeAllPress, items }: ProfileSectionProps) {
+export function ProfileSection({
+  title,
+  onSeeAllPress,
+  items,
+}: ProfileSectionProps) {
   return (
     <View style={styles.container}>
       {/* Section Header */}
@@ -43,6 +48,7 @@ export function ProfileSection({ title, onSeeAllPress, items }: ProfileSectionPr
             badgeColor={item.badgeColor}
             showBadge={item.showBadge}
             onPress={item.onPress}
+            onRemovePress={item.onRemovePress}
           />
         ))}
       </ScrollView>
@@ -56,20 +62,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: hp(12),
   },
   title: {
     fontSize: fs(20),
     fontFamily: FONTS.bold,
-    color: '#000000',
+    color: "#000000",
   },
   seeAllText: {
     fontSize: fs(14),
     fontFamily: FONTS.medium,
-    color: '#666666',
+    color: "#666666",
   },
   scrollView: {
     marginLeft: 0,
