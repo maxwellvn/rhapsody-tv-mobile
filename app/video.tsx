@@ -10,6 +10,8 @@ import {
   useUnsubscribe,
 } from "@/hooks/queries/useChannelQueries";
 import { useLikeStatus, useToggleLike } from "@/hooks/queries/useVodQueries";
+import { downloadNotificationService } from "@/services/download-notification.service";
+import { offlineDownloadService } from "@/services/offline-download.service";
 import { videoService } from "@/services/video.service";
 import { styles } from "@/styles/live-video.styles";
 import { formatNumber, formatRelativeTime } from "@/utils/formatters";
@@ -37,11 +39,16 @@ export default function VideoScreen() {
     title?: string;
     channelName?: string;
     channelAvatar?: string;
+    thumbnailUrl?: string;
     views?: number;
     publishedAt?: string;
     channelId?: string;
     channelSlug?: string;
+    playbackUrl?: string;
   }>({});
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDownloaded, setIsDownloaded] = useState(false);
 
   const { showSuccess, showError } = useToast();
 
@@ -80,30 +87,55 @@ export default function VideoScreen() {
     try {
       setIsLoadingVideo(true);
 
+      const offlineVideo = await offlineDownloadService.getDownloadedVideo(id);
+      if (offlineVideo) {
+        setIsDownloaded(true);
+        setVideoUri(offlineVideo.localUri);
+        setVideoDetails({
+          title: offlineVideo.title,
+          channelName: offlineVideo.channelName,
+          channelAvatar: offlineVideo.channelAvatar,
+          thumbnailUrl: offlineVideo.thumbnailUrl,
+          playbackUrl: offlineVideo.playbackUrl,
+        });
+      } else {
+        setIsDownloaded(false);
+      }
+
       // Per API docs, VOD playback and details come from /v1/vod/{videoId}
       const response = await videoService.getVodVideo(id);
 
       if (response.success && response.data) {
         const video = response.data;
-        setVideoUri(video.playbackUrl || fallbackStreamUrl);
-        setVideoDetails({
+        setVideoUri(
+          offlineVideo?.localUri || video.playbackUrl || fallbackStreamUrl,
+        );
+        setVideoDetails((prev) => ({
+          ...prev,
           title: video.title,
           channelName: video.channel?.name,
           channelAvatar: video.channel?.logoUrl,
+          thumbnailUrl: video.thumbnailUrl,
           views: video.viewCount,
           publishedAt: video.createdAt,
-          // Use video.channel.id if available, otherwise fallback to video.channelId
+          playbackUrl: video.playbackUrl,
           channelId: video.channel?.id || video.channelId,
           channelSlug: video.channel?.slug,
-        });
+        }));
       } else {
-        setVideoUri(fallbackStreamUrl);
-        setVideoDetails({});
+        if (!offlineVideo) {
+          setVideoUri(fallbackStreamUrl);
+          setVideoDetails({});
+        }
       }
     } catch (err: any) {
       console.error("Error fetching video stream:", err);
-      setVideoUri(fallbackStreamUrl);
-      setVideoDetails({});
+      const offlineVideo = await offlineDownloadService.getDownloadedVideo(id);
+      if (!offlineVideo) {
+        setVideoUri(fallbackStreamUrl);
+        setVideoDetails({});
+        setIsDownloaded(false);
+      }
     } finally {
       setIsLoadingVideo(false);
     }
@@ -158,6 +190,65 @@ export default function VideoScreen() {
     }
   };
 
+  const handleDownload = async () => {
+    if (!id) {
+      showError("Video information not available");
+      return;
+    }
+
+    if (isDownloaded) {
+      showSuccess("This video is already downloaded");
+      return;
+    }
+
+    if (!videoDetails.playbackUrl) {
+      showError("Download URL unavailable");
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+      setDownloadProgress(0);
+      const isHls = (videoDetails.playbackUrl || "")
+        .split("?")[0]
+        .toLowerCase()
+        .endsWith(".m3u8");
+      const notificationTitle = videoDetails.title || "Video download";
+
+      await downloadNotificationService.start(notificationTitle, isHls);
+
+      const downloaded = await offlineDownloadService.downloadVideo({
+        videoId: id,
+        title: videoDetails.title || "Untitled Video",
+        channelName: videoDetails.channelName,
+        channelAvatar: videoDetails.channelAvatar,
+        thumbnailUrl: videoDetails.thumbnailUrl,
+        playbackUrl: videoDetails.playbackUrl,
+        onProgress: (progress) => {
+          setDownloadProgress(progress);
+          downloadNotificationService.update(
+            progress,
+            notificationTitle,
+            isHls,
+          );
+        },
+      });
+
+      setVideoUri(downloaded.localUri);
+      setIsDownloaded(true);
+      await downloadNotificationService.complete(notificationTitle);
+      showSuccess("Video downloaded for offline viewing");
+    } catch (err: any) {
+      await downloadNotificationService.fail(
+        videoDetails.title || "Video download",
+      );
+      showError(err?.message || "Failed to download video");
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
+  };
+
   // Miniplayer Integration
   const { minimize, close, activeVideo } = useVideoOverlay();
   const router = useRouter();
@@ -167,7 +258,7 @@ export default function VideoScreen() {
     if (activeVideo?.videoId === id) {
       close();
     }
-  }, [id, activeVideo]);
+  }, [id, activeVideo, close]);
 
   const handleMinimize = () => {
     if (!videoDetails.title) return; // Wait for data
@@ -180,11 +271,10 @@ export default function VideoScreen() {
       isLive: false,
       videoId: id,
       channelId: videoDetails.channelId,
-      originalRoute: '/video'
+      originalRoute: "/video",
     });
     router.back();
   };
-
 
   const isSubscribeLoading =
     subscribeMutation.isPending ||
@@ -192,6 +282,10 @@ export default function VideoScreen() {
     isSubscribed === null ||
     isCheckingSubscription;
   const isLikeLoading = toggleLikeMutation.isPending;
+  const isHlsDownload = (videoDetails.playbackUrl || "")
+    .split("?")[0]
+    .toLowerCase()
+    .endsWith(".m3u8");
 
   return (
     <>
@@ -343,15 +437,52 @@ export default function VideoScreen() {
                   <Text style={styles.actionButtonText}>Share</Text>
                 </Pressable>
 
-                <Pressable style={styles.actionButton}>
-                  <Ionicons
-                    name="download-outline"
-                    size={dimensions.isTablet ? fs(16) : fs(14)}
-                    color="#000000"
-                  />
-                  <Text style={styles.actionButtonText}>Download</Text>
+                <Pressable
+                  style={[
+                    styles.actionButton,
+                    isDownloaded && styles.actionButtonActive,
+                  ]}
+                  onPress={handleDownload}
+                  disabled={isDownloading || !id}
+                >
+                  {isDownloading ? (
+                    <>
+                      <ActivityIndicator size="small" color="#000000" />
+                      <Text style={styles.actionButtonText}>
+                        {`Downloading ${Math.round(downloadProgress * 100)}%`}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={isDownloaded ? "download" : "download-outline"}
+                        size={dimensions.isTablet ? fs(16) : fs(14)}
+                        color={isDownloaded ? "#E50914" : "#000000"}
+                      />
+                      <Text
+                        style={[
+                          styles.actionButtonText,
+                          isDownloaded && styles.actionButtonTextActive,
+                        ]}
+                      >
+                        {isDownloading
+                          ? `Downloading ${Math.round(downloadProgress * 100)}%`
+                          : isDownloaded
+                            ? "Downloaded"
+                            : "Download"}
+                      </Text>
+                    </>
+                  )}
                 </Pressable>
               </ScrollView>
+
+              {isDownloading && (
+                <Text style={[styles.startedTime, { marginTop: 8 }]}>
+                  {isHlsDownload
+                    ? `Downloading HLS stream... ${Math.round(downloadProgress * 100)}%`
+                    : `Downloading video... ${Math.round(downloadProgress * 100)}%`}
+                </Text>
+              )}
             </View>
 
             {/* Comments Section */}

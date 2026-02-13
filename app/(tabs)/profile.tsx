@@ -4,23 +4,23 @@ import { ProfileInfo } from "@/components/profile/profile-info";
 import { ProfileSection } from "@/components/profile/profile-section";
 import { userService } from "@/services/user.service";
 import {
-  PaginatedWatchHistoryResponseDto,
-  PaginatedWatchlistResponseDto,
-  User,
+    PaginatedWatchHistoryResponseDto,
+    PaginatedWatchlistResponseDto,
+    User,
 } from "@/types/api.types";
 import { hp, spacing, wp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Image,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -106,8 +106,7 @@ export default function ProfileScreen() {
   };
 
   const handleDownloadedVideos = () => {
-    console.log("Downloaded videos pressed");
-    // Downloaded videos navigation will go here
+    router.push("/downloaded-videos");
   };
 
   const handleRemoveFromWatchlist = async (videoId: string) => {

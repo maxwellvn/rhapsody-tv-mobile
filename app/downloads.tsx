@@ -5,12 +5,14 @@ import {
     useUpdateUserSettings,
     useUserSettings,
 } from "@/hooks/queries/useUserQueries";
+import { offlineDownloadService } from "@/services/offline-download.service";
 import { FONTS } from "@/styles/global";
 import { fs, hp, spacing, wp } from "@/utils/responsive";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     Pressable,
     ScrollView,
@@ -45,8 +47,16 @@ export default function DownloadsScreen() {
   };
 
   const handleDeleteDownloads = () => {
-    console.log("Delete Downloads pressed");
-    // Show confirmation dialog or navigate to delete downloads page
+    Alert.alert("Delete Downloads", "Remove all downloaded videos?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await offlineDownloadService.clearAllDownloads();
+        },
+      },
+    ]);
   };
 
   const handleWifiToggle = (value: boolean) => {
