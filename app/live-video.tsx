@@ -5,6 +5,7 @@ import { VideoRecommendationCard } from "@/components/video-recommendation-card"
 import { useToast } from "@/context/ToastContext";
 import {
   useChannelSubscriptionStatus,
+  useChannelVideos,
   useSubscribe,
   useUnsubscribe,
 } from "@/hooks/queries/useChannelQueries";
@@ -14,7 +15,7 @@ import { useWatchLivestream } from "@/hooks/queries/useHomepageQueries";
 import { useLikeStatus, useToggleLike } from "@/hooks/queries/useVodQueries";
 import { useLivestreamSocket } from "@/hooks/useLivestreamSocket";
 import { styles } from "@/styles/live-video.styles";
-import { formatRelativeTime } from "@/utils/formatters";
+import { formatNumber, formatRelativeTime } from "@/utils/formatters";
 import { dimensions, fs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -78,6 +79,10 @@ export default function LiveVideoScreen() {
   // Fetch subscription status on load
   const { data: subscriptionStatus, isLoading: isCheckingSubscription } =
     useChannelSubscriptionStatus(channelId);
+
+  // Fetch channel videos for recommendations under livestream
+  const { data: channelVideosData, isLoading: isLoadingChannelVideos } =
+    useChannelVideos(channelSlug || "", 1, 8);
 
   // Subscribe/Unsubscribe mutations
   const subscribeMutation = useSubscribe();
@@ -183,7 +188,7 @@ export default function LiveVideoScreen() {
       // We are entering the screen for the video that was playing in miniplayer
       close(); // Stop miniplayer so we can take over custom playback
     }
-  }, [liveStreamId, activeVideo]);
+  }, [liveStreamId, activeVideo, close]);
 
   const handleMinimize = () => {
     if (!liveProgram) return;
@@ -196,7 +201,7 @@ export default function LiveVideoScreen() {
       isLive: true,
       videoId: liveStreamId,
       channelId: channelId,
-      originalRoute: '/live-video'
+      originalRoute: "/live-video",
     });
 
     router.back();
@@ -208,6 +213,9 @@ export default function LiveVideoScreen() {
     isSubscribed === null ||
     isCheckingSubscription;
   const isLikeLoading = toggleLikeMutation.isPending;
+
+  const recommendedVideos =
+    channelVideosData?.videos?.filter((video) => video.id !== videoId) || [];
 
   const videoUri = liveProgram?.rtmpUrl ?? fallbackStreamUrl;
   const isLoadingVideo = isLoadingProgram;
@@ -389,25 +397,45 @@ export default function LiveVideoScreen() {
 
             {/* Video Recommendations */}
             <View style={styles.recommendationsContainer}>
-              <VideoRecommendationCard
-                thumbnailSource={require("@/assets/images/Image-2.png")}
-                title="Night Of A Thousand Crusades HIGHLIGHT 3"
-                channelName="Rhapsody TV"
-                channelAvatar={require("@/assets/images/Avatar.png")}
-                viewCount="500k views"
-                timeAgo="3hrs ago"
-                isNew={true}
-              />
-
-              <VideoRecommendationCard
-                thumbnailSource={require("@/assets/images/Image-6.png")}
-                title="NOTHING ON MEDIA IS NEUTRAL A CONVERSATION WITH BLOSSOM CH..."
-                channelName="Program Highlights"
-                channelAvatar={require("@/assets/images/Avatar.png")}
-                viewCount="500k views"
-                timeAgo="3hrs ago"
-                isNew={true}
-              />
+              {isLoadingChannelVideos ? (
+                <Text style={styles.startedTime}>
+                  Loading recommendations...
+                </Text>
+              ) : recommendedVideos.length > 0 ? (
+                recommendedVideos.map((video) => (
+                  <VideoRecommendationCard
+                    key={video.id}
+                    thumbnailSource={
+                      video.thumbnailUrl
+                        ? { uri: video.thumbnailUrl }
+                        : require("@/assets/images/Image-2.png")
+                    }
+                    title={video.title}
+                    channelName={liveProgram?.channel?.name || "Channel"}
+                    channelAvatar={
+                      liveProgram?.channel?.logoUrl
+                        ? { uri: liveProgram.channel.logoUrl }
+                        : require("@/assets/images/Avatar.png")
+                    }
+                    viewCount={`${formatNumber(video.viewCount)} views`}
+                    timeAgo={
+                      video.publishedAt
+                        ? formatRelativeTime(video.publishedAt)
+                        : "Recently uploaded"
+                    }
+                    onPress={() =>
+                      router.push({
+                        pathname: "/video",
+                        params: { id: video.id },
+                      })
+                    }
+                  />
+                ))
+              ) : (
+                <Text style={styles.startedTime}>
+                  No other videos from this channel yet.
+                </Text>
+              )}
             </View>
           </ScrollView>
         )}

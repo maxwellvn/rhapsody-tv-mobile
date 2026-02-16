@@ -6,6 +6,7 @@ import { useToast } from "@/context/ToastContext";
 import { useVideoOverlay } from "@/context/VideoOverlayContext";
 import {
   useChannelSubscriptionStatus,
+  useChannelVideos,
   useSubscribe,
   useUnsubscribe,
 } from "@/hooks/queries/useChannelQueries";
@@ -58,6 +59,10 @@ export default function VideoScreen() {
   // Fetch subscription status
   const { data: subscriptionStatus, isLoading: isCheckingSubscription } =
     useChannelSubscriptionStatus(videoDetails.channelId);
+
+  // Fetch channel videos for recommendations
+  const { data: channelVideosData, isLoading: isLoadingChannelVideos } =
+    useChannelVideos(videoDetails.channelSlug || "", 1, 8);
 
   // Subscribe/Unsubscribe mutations
   const subscribeMutation = useSubscribe();
@@ -286,6 +291,8 @@ export default function VideoScreen() {
     .split("?")[0]
     .toLowerCase()
     .endsWith(".m3u8");
+  const recommendedVideos =
+    channelVideosData?.videos?.filter((video) => video.id !== id) || [];
 
   return (
     <>
@@ -493,25 +500,45 @@ export default function VideoScreen() {
 
             {/* Video Recommendations */}
             <View style={styles.recommendationsContainer}>
-              <VideoRecommendationCard
-                thumbnailSource={require("@/assets/images/Image-2.png")}
-                title="Night Of A Thousand Crusades HIGHLIGHT 3"
-                channelName="Rhapsody TV"
-                channelAvatar={require("@/assets/images/Avatar.png")}
-                viewCount="500k views"
-                timeAgo="3hrs ago"
-                isNew={true}
-              />
-
-              <VideoRecommendationCard
-                thumbnailSource={require("@/assets/images/Image-6.png")}
-                title="NOTHING ON MEDIA IS NEUTRAL A CONVERSATION WITH BLOSSOM CH..."
-                channelName="Program Highlights"
-                channelAvatar={require("@/assets/images/Avatar.png")}
-                viewCount="500k views"
-                timeAgo="3hrs ago"
-                isNew={true}
-              />
+              {isLoadingChannelVideos ? (
+                <Text style={styles.startedTime}>
+                  Loading recommendations...
+                </Text>
+              ) : recommendedVideos.length > 0 ? (
+                recommendedVideos.map((video) => (
+                  <VideoRecommendationCard
+                    key={video.id}
+                    thumbnailSource={
+                      video.thumbnailUrl
+                        ? { uri: video.thumbnailUrl }
+                        : require("@/assets/images/Image-2.png")
+                    }
+                    title={video.title}
+                    channelName={videoDetails.channelName || "Channel"}
+                    channelAvatar={
+                      videoDetails.channelAvatar
+                        ? { uri: videoDetails.channelAvatar }
+                        : require("@/assets/images/Avatar.png")
+                    }
+                    viewCount={`${formatNumber(video.viewCount)} views`}
+                    timeAgo={
+                      video.publishedAt
+                        ? formatRelativeTime(video.publishedAt)
+                        : "Recently uploaded"
+                    }
+                    onPress={() =>
+                      router.push({
+                        pathname: "/video",
+                        params: { id: video.id },
+                      })
+                    }
+                  />
+                ))
+              ) : (
+                <Text style={styles.startedTime}>
+                  No other videos from this channel yet.
+                </Text>
+              )}
             </View>
           </ScrollView>
         )}
