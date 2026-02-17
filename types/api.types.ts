@@ -36,6 +36,16 @@ export interface LoginRequest {
   rememberMe?: boolean;
 }
 
+export interface KingsChatTokens {
+  accessToken: string;
+  refreshToken?: string;
+}
+
+export interface KingsChatLoginRequest {
+  accessToken: string;
+  refreshToken?: string;
+}
+
 export interface RegisterRequest {
   fullName: string;
   email: string;

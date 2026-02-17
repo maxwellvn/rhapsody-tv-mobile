@@ -1,11 +1,12 @@
-import { api } from './api.client';
-import { API_ENDPOINTS } from '@/config/api.config';
+import { API_ENDPOINTS } from "@/config/api.config";
 import {
+  ApiResponse,
+  AuthResponse,
+  KingsChatLoginRequest,
   LoginRequest,
   RegisterRequest,
-  AuthResponse,
-  ApiResponse,
-} from '@/types/api.types';
+} from "@/types/api.types";
+import { api } from "./api.client";
 
 /**
  * Authentication Service
@@ -20,9 +21,20 @@ class AuthService {
   }
 
   /**
+   * Login with KingsChat
+   */
+  async loginWithKingsChat(
+    payload: KingsChatLoginRequest,
+  ): Promise<ApiResponse<AuthResponse>> {
+    return api.post<AuthResponse>(API_ENDPOINTS.AUTH.KINGSCHAT, payload);
+  }
+
+  /**
    * Register new user
    */
-  async register(userData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
+  async register(
+    userData: RegisterRequest,
+  ): Promise<ApiResponse<AuthResponse>> {
     return api.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, userData);
   }
 
@@ -45,8 +57,13 @@ class AuthService {
   /**
    * Request email verification code
    */
-  async requestEmailVerification(email: string): Promise<ApiResponse<{ email: string }>> {
-    return api.post<{ email: string }>(API_ENDPOINTS.AUTH.REQUEST_EMAIL_VERIFICATION, { email });
+  async requestEmailVerification(
+    email: string,
+  ): Promise<ApiResponse<{ email: string }>> {
+    return api.post<{ email: string }>(
+      API_ENDPOINTS.AUTH.REQUEST_EMAIL_VERIFICATION,
+      { email },
+    );
   }
 
   /**
@@ -68,7 +85,7 @@ class AuthService {
    */
   async resetPassword(
     token: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<ApiResponse<void>> {
     return api.post<void>(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
       token,
@@ -81,7 +98,7 @@ class AuthService {
    */
   async changePassword(
     currentPassword: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<ApiResponse<void>> {
     return api.post<void>(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, {
       currentPassword,

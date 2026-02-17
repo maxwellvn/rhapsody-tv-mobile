@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/auth.service";
+import { kingsChatService } from "@/services/kingschat.service";
 import { userService } from "@/services/user.service";
 import { LoginRequest, RegisterRequest } from "@/types/api.types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -75,6 +76,26 @@ export function useRegister() {
     },
     onError: (error: any) => {
       console.error("Registration error:", error);
+    },
+  });
+}
+
+/**
+ * KingsChat login mutation
+ */
+export function useKingsChatLogin() {
+  return useMutation({
+    mutationFn: async () => {
+      const kingsChatTokens = await kingsChatService.login();
+      const response = await authService.loginWithKingsChat({
+        accessToken: kingsChatTokens.accessToken,
+        refreshToken: kingsChatTokens.refreshToken,
+      });
+
+      return response.data;
+    },
+    onError: (error: any) => {
+      console.error("KingsChat login error:", error);
     },
   });
 }

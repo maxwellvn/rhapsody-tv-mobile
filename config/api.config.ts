@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
     LOGIN: "/auth/login",
+    KINGSCHAT: "/auth/kingschat",
     REGISTER: "/auth/register",
     LOGOUT: "/auth/logout",
     REFRESH_TOKEN: "/auth/refresh",

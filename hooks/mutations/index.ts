@@ -3,9 +3,11 @@
  * Re-exports all authentication-related mutations from useAuthQueries
  */
 export {
+  useKingsChatLogin,
   useLogin,
   useLogout,
   useRegister,
   useRequestEmailVerification,
-  useVerifyEmail,
+  useVerifyEmail
 } from "../queries/useAuthQueries";
+

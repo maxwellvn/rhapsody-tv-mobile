@@ -1,22 +1,26 @@
 import { AuthTabs } from "@/components/auth-tabs";
 import Loader from "@/components/loader";
 import { useToast } from "@/context/ToastContext";
-import { useLogin } from "@/hooks/mutations";
+import { useKingsChatLogin, useLogin } from "@/hooks/mutations";
 import { styles } from "@/styles/register.styles";
+import {
+  handleKingsChatAuthError,
+  handleKingsChatAuthSuccess,
+} from "@/utils/kingschat-auth";
 import { storage } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -39,7 +43,10 @@ export default function SignInScreen() {
 
   // Use Tanstack Query login mutation
   const loginMutation = useLogin();
+  const kingsChatLoginMutation = useKingsChatLogin();
   const isLoading = loginMutation.isPending;
+  const isKingsChatLoading = kingsChatLoginMutation.isPending;
+  const isSubmitting = isLoading || isKingsChatLoading;
 
   const handleBack = () => {
     router.back();
@@ -117,6 +124,19 @@ export default function SignInScreen() {
     );
   };
 
+  const handleKingsChatSignIn = async () => {
+    kingsChatLoginMutation.mutate(undefined, {
+      onSuccess: async (data) => {
+        await handleKingsChatAuthSuccess(data, showSuccess, () =>
+          router.push("/(tabs)"),
+        );
+      },
+      onError: (error: any) => {
+        handleKingsChatAuthError(error, showError);
+      },
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar style="light" />
@@ -163,7 +183,7 @@ export default function SignInScreen() {
             autoCorrect={false}
             onFocus={() => setFocusedField("email")}
             onBlur={() => setFocusedField(null)}
-            editable={!isLoading}
+            editable={!isSubmitting}
           />
 
           {/* Password */}
@@ -185,13 +205,13 @@ export default function SignInScreen() {
               autoCorrect={false}
               onFocus={() => setFocusedField("password")}
               onBlur={() => setFocusedField(null)}
-              editable={!isLoading}
+              editable={!isSubmitting}
             />
             <Pressable
               onPress={() => setShowPassword(!showPassword)}
               style={styles.eyeIcon}
               hitSlop={8}
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
               <Ionicons
                 name={showPassword ? "eye-outline" : "eye-off-outline"}
@@ -211,22 +231,26 @@ export default function SignInScreen() {
             style={[
               styles.registerButton,
               { marginTop: 100 },
-              isLoading && styles.registerButtonDisabled,
+              isSubmitting && styles.registerButtonDisabled,
             ]}
             onPress={handleSignIn}
-            disabled={isLoading}
+            disabled={isSubmitting}
           >
             <Text style={styles.registerButtonText}>Sign In</Text>
           </Pressable>
 
           {/* Full Screen Loader Overlay */}
-          {isLoading && <Loader />}
+          {isSubmitting && <Loader />}
 
           {/* OR Divider */}
           <Text style={styles.orText}>OR</Text>
 
           {/* KingsChat Button */}
-          <Pressable style={styles.kingschatButton}>
+          <Pressable
+            style={styles.kingschatButton}
+            onPress={handleKingsChatSignIn}
+            disabled={isSubmitting}
+          >
             <Text style={styles.kingschatButtonText}>
               Sign In with KingsChat
             </Text>
