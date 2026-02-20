@@ -1,5 +1,6 @@
 import { AboutTab } from "@/components/channel-profile/about-tab";
 import { HomeTab } from "@/components/channel-profile/home-tab";
+import { LiveTab } from "@/components/channel-profile/live-tab";
 import { ChannelProfileHeader } from "@/components/channel-profile/profile-header";
 import { ScheduleTab } from "@/components/channel-profile/schedule-tab";
 import { VideosTab } from "@/components/channel-profile/videos-tab";
@@ -13,7 +14,6 @@ import { useState } from "react";
 import {
     Image,
     Pressable,
-    RefreshControl,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -80,7 +80,7 @@ function ChannelProfileSkeleton() {
       </View>
 
       <View style={skeletonStyles.tabs}>
-        {["Home", "Videos", "Schedule", "About"].map((_, i) => (
+        {["Home", "Videos", "Live", "Schedule", "About"].map((_, i) => (
           <Skeleton
             key={i}
             width={wp(50)}
@@ -159,12 +159,11 @@ const skeletonStyles = StyleSheet.create({
 export default function ChannelProfileScreen() {
   const { slug, id } = useLocalSearchParams<{ slug: string; id: string }>();
   const [activeTab, setActiveTab] = useState<
-    "Home" | "Videos" | "Schedule" | "About"
+    "Home" | "Videos" | "Live" | "Schedule" | "About"
   >("Home");
   const queryClient = useQueryClient();
 
-  const { data, isLoading, refetch } = useChannel(slug || "");
-  const [refreshing, setRefreshing] = useState(false);
+  const { data, isLoading } = useChannel(slug || "");
 
   const handleBack = () => {
     router.back();
@@ -174,13 +173,7 @@ export default function ChannelProfileScreen() {
 
   const handleMenu = () => {};
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  };
-
-  if (isLoading && !refreshing) {
+  if (isLoading) {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
@@ -254,20 +247,13 @@ export default function ChannelProfileScreen() {
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#1A237E"
-            />
-          }
         >
           {/* Channel Profile Section */}
           {data && <ChannelProfileHeader channel={data.channel} />}
 
           {/* Tabs */}
           <View style={styles.tabsContainer}>
-            {(["Home", "Videos", "Schedule", "About"] as const).map((tab) => (
+            {(["Home", "Videos", "Live", "Schedule", "About"] as const).map((tab) => (
               <Pressable
                 key={tab}
                 style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -289,6 +275,7 @@ export default function ChannelProfileScreen() {
           <View style={styles.tabContent}>
             {activeTab === "Home" && data && <HomeTab detail={data} />}
             {activeTab === "Videos" && <VideosTab slug={slug || ""} />}
+            {activeTab === "Live" && <LiveTab slug={slug || ""} />}
             {activeTab === "Schedule" && <ScheduleTab slug={slug || ""} />}
             {activeTab === "About" && data && (
               <AboutTab channel={data.channel} />

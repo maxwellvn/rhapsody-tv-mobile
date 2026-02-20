@@ -84,6 +84,9 @@ export function useRegister() {
  * KingsChat login mutation
  */
 export function useKingsChatLogin() {
+  const { login } = useAuth();
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async () => {
       const kingsChatTokens = await kingsChatService.login();
@@ -93,6 +96,10 @@ export function useKingsChatLogin() {
       });
 
       return response.data;
+    },
+    onSuccess: async (data) => {
+      await login(data);
+      queryClient.invalidateQueries({ queryKey: authKeys.all });
     },
     onError: (error: any) => {
       console.error("KingsChat login error:", error);
@@ -118,8 +125,8 @@ export function useLogout() {
       // Clear all queries
       queryClient.clear();
 
-      // Navigate to onboarding
-      router.replace("/onboarding");
+      // Navigate to auth entry
+      router.replace({ pathname: "/(auth)/signin", params: { tab: "signin" } });
     },
   });
 }

@@ -51,7 +51,7 @@ export default function OnboardingScreen() {
   }, [snapInterval]);
 
   const handleSkip = () => {
-    router.push('/(auth)/register');
+    router.replace({ pathname: '/(auth)/signin', params: { tab: 'register' } });
   };
 
   const handleScroll = Animated.event(

@@ -1,7 +1,7 @@
 import { AuthTabs } from "@/components/auth-tabs";
 import Loader from "@/components/loader";
 import { useToast } from "@/context/ToastContext";
-import { useKingsChatLogin, useLogin } from "@/hooks/mutations";
+import { useKingsChatLogin, useLogin, useRegister } from "@/hooks/mutations";
 import { styles } from "@/styles/register.styles";
 import {
   handleKingsChatAuthError,
@@ -11,8 +11,9 @@ import { storage } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -24,16 +25,33 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function SignInScreen() {
-  const router = useRouter();
-  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
-  const { showError, showSuccess, showWarning } = useToast();
-  const [showPassword, setShowPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
+type AuthTab = "register" | "signin";
 
-  // Form fields
+export default function AuthScreen() {
+  const router = useRouter();
+  const { email: emailParam, tab: tabParam } = useLocalSearchParams<{
+    email?: string;
+    tab?: string;
+  }>();
+  const { showError, showSuccess, showWarning } = useToast();
+  const [activeTab, setActiveTab] = useState<AuthTab>(
+    tabParam === "register" ? "register" : "signin",
+  );
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const formTransition = useRef(new Animated.Value(1)).current;
+
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  useEffect(() => {
+    if (tabParam === "register" || tabParam === "signin") {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   useEffect(() => {
     if (typeof emailParam === "string" && emailParam.trim()) {
@@ -41,10 +59,11 @@ export default function SignInScreen() {
     }
   }, [emailParam]);
 
-  // Use Tanstack Query login mutation
   const loginMutation = useLogin();
+  const registerMutation = useRegister();
   const kingsChatLoginMutation = useKingsChatLogin();
-  const isLoading = loginMutation.isPending;
+
+  const isLoading = loginMutation.isPending || registerMutation.isPending;
   const isKingsChatLoading = kingsChatLoginMutation.isPending;
   const isSubmitting = isLoading || isKingsChatLoading;
 
@@ -52,13 +71,36 @@ export default function SignInScreen() {
     router.back();
   };
 
-  const validateForm = () => {
+  const animateToTab = (nextTab: AuthTab) => {
+    if (activeTab === nextTab || isSubmitting) {
+      return;
+    }
+
+    Animated.sequence([
+      Animated.timing(formTransition, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(formTransition, {
+        toValue: 1,
+        duration: 240,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setFocusedField(null);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setActiveTab(nextTab);
+  };
+
+  const validateSignInForm = () => {
     if (!email.trim()) {
       showError("Please enter your email address");
       return false;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       showError("Please enter a valid email address");
@@ -73,8 +115,43 @@ export default function SignInScreen() {
     return true;
   };
 
+  const validateRegisterForm = () => {
+    if (!fullName.trim()) {
+      showError("Please enter your full name");
+      return false;
+    }
+
+    if (!email.trim()) {
+      showError("Please enter your email address");
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showError("Please enter a valid email address");
+      return false;
+    }
+
+    if (!password) {
+      showError("Please enter a password");
+      return false;
+    }
+
+    if (password.length < 6) {
+      showError("Password must be at least 6 characters long");
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      showError("Passwords do not match");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSignIn = async () => {
-    if (!validateForm()) {
+    if (!validateSignInForm()) {
       return;
     }
 
@@ -85,15 +162,10 @@ export default function SignInScreen() {
       },
       {
         onSuccess: async (data) => {
-          // Save tokens to storage
           await storage.saveTokens(data.accessToken, data.refreshToken);
-
-          // Save user data
           await storage.saveUserData(data.user);
 
-          // Check if email is verified
           if (!data.isEmailVerified) {
-            // Navigate to verify email screen
             router.push({
               pathname: "/(auth)/verify-email",
               params: { email: email.trim().toLowerCase() },
@@ -101,9 +173,7 @@ export default function SignInScreen() {
 
             showWarning("Please verify your email address to continue.");
           } else {
-            // Navigate to main app
-            showSuccess("Sign in successful!");
-            router.push("/(tabs)");
+            router.replace("/(tabs)");
           }
         },
         onError: (error: any) => {
@@ -124,11 +194,48 @@ export default function SignInScreen() {
     );
   };
 
+  const handleRegister = async () => {
+    if (!validateRegisterForm()) {
+      return;
+    }
+
+    registerMutation.mutate(
+      {
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      },
+      {
+        onSuccess: () => {
+          showSuccess("Registration successful! Please verify your email.");
+          router.push({
+            pathname: "/(auth)/verify-email",
+            params: { email: email.trim().toLowerCase() },
+          });
+        },
+        onError: (error: any) => {
+          console.error("Registration error:", error);
+
+          if (error.statusCode === 409) {
+            showError(
+              "An account with this email already exists. Please sign in instead.",
+            );
+          } else {
+            showError(
+              error.message ||
+                "An error occurred during registration. Please try again.",
+            );
+          }
+        },
+      },
+    );
+  };
+
   const handleKingsChatSignIn = async () => {
     kingsChatLoginMutation.mutate(undefined, {
       onSuccess: async (data) => {
         await handleKingsChatAuthSuccess(data, showSuccess, () =>
-          router.push("/(tabs)"),
+          router.replace("/(tabs)"),
         );
       },
       onError: (error: any) => {
@@ -137,6 +244,223 @@ export default function SignInScreen() {
     });
   };
 
+  const registerFields = (
+    <>
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Full Name</Text>
+        <TextInput
+          style={[styles.input, focusedField === "fullName" && styles.inputFocused]}
+          placeholder="Full Name"
+          placeholderTextColor="#999"
+          value={fullName}
+          onChangeText={setFullName}
+          onFocus={() => setFocusedField("fullName")}
+          onBlur={() => setFocusedField(null)}
+          autoCorrect={false}
+          editable={!isSubmitting}
+        />
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Email Address</Text>
+        <TextInput
+          style={[styles.input, focusedField === "email" && styles.inputFocused]}
+          placeholder="Email Address"
+          placeholderTextColor="#999"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          onFocus={() => setFocusedField("email")}
+          onBlur={() => setFocusedField(null)}
+          editable={!isSubmitting}
+        />
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Password</Text>
+        <View
+          style={[
+            styles.passwordContainer,
+            focusedField === "password" && styles.passwordContainerFocused,
+          ]}
+        >
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Password"
+            placeholderTextColor="#999"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onFocus={() => setFocusedField("password")}
+            onBlur={() => setFocusedField(null)}
+            editable={!isSubmitting}
+          />
+          <Pressable
+            onPress={() => setShowPassword((prev) => !prev)}
+            style={styles.eyeIcon}
+            hitSlop={8}
+            disabled={isSubmitting}
+          >
+            <Ionicons
+              name={showPassword ? "eye-outline" : "eye-off-outline"}
+              size={24}
+              color="#999"
+            />
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Confirm Password</Text>
+        <View
+          style={[
+            styles.passwordContainer,
+            focusedField === "confirmPassword" && styles.passwordContainerFocused,
+          ]}
+        >
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Confirm Password"
+            placeholderTextColor="#999"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onFocus={() => setFocusedField("confirmPassword")}
+            onBlur={() => setFocusedField(null)}
+            editable={!isSubmitting}
+          />
+          <Pressable
+            onPress={() => setShowConfirmPassword((prev) => !prev)}
+            style={styles.eyeIcon}
+            hitSlop={8}
+            disabled={isSubmitting}
+          >
+            <Ionicons
+              name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+              size={24}
+              color="#999"
+            />
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Pressable
+          style={[styles.registerButton, isSubmitting && styles.registerButtonDisabled]}
+          onPress={handleRegister}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.registerButtonText}>Register</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+
+  const signInFields = (
+    <>
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Email Address</Text>
+        <TextInput
+          style={[styles.input, focusedField === "email" && styles.inputFocused]}
+          placeholder="Email Address"
+          placeholderTextColor="#999"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          onFocus={() => setFocusedField("email")}
+          onBlur={() => setFocusedField(null)}
+          editable={!isSubmitting}
+        />
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Password</Text>
+        <View
+          style={[
+            styles.passwordContainer,
+            focusedField === "password" && styles.passwordContainerFocused,
+          ]}
+        >
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Password"
+            placeholderTextColor="#999"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onFocus={() => setFocusedField("password")}
+            onBlur={() => setFocusedField(null)}
+            editable={!isSubmitting}
+          />
+          <Pressable
+            onPress={() => setShowPassword((prev) => !prev)}
+            style={styles.eyeIcon}
+            hitSlop={8}
+            disabled={isSubmitting}
+          >
+            <Ionicons
+              name={showPassword ? "eye-outline" : "eye-off-outline"}
+              size={24}
+              color="#999"
+            />
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Pressable
+          style={styles.forgotPasswordContainer}
+          onPress={() =>
+            router.push({
+              pathname: "/(auth)/forgot-password",
+              params: email.trim()
+                ? { email: email.trim().toLowerCase() }
+                : undefined,
+            })
+          }
+          disabled={isSubmitting}
+        >
+          <Text style={styles.forgotPasswordText}>Forgot Password</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Pressable
+          style={[styles.registerButton, isSubmitting && styles.registerButtonDisabled]}
+          onPress={handleSignIn}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.registerButtonText}>Sign In</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+
+  const animatedFormStyle = useMemo(
+    () => ({
+      opacity: formTransition,
+      transform: [
+        {
+          translateY: formTransition.interpolate({
+            inputRange: [0, 1],
+            outputRange: [12, 0],
+          }),
+        },
+      ],
+    }),
+    [formTransition],
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar style="light" />
@@ -144,122 +468,50 @@ export default function SignInScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        {/* Blue Background Section */}
         <View style={styles.blueSection} />
 
-        {/* Back Button */}
         <Pressable onPress={handleBack} style={styles.backButton} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color="#FAFAFA" />
         </Pressable>
 
-        {/* Welcome Text */}
         <Text style={styles.welcomeText}>Welcome to{"\n"}Rhapsody TV</Text>
 
-        {/* Auth Tabs */}
         <View style={styles.tabsContainer}>
-          <AuthTabs activeTab="signin" />
+          <AuthTabs
+            activeTab={activeTab}
+            onTabChange={animateToTab}
+            disabled={isSubmitting}
+          />
         </View>
 
-        {/* Form Container */}
         <ScrollView
           style={styles.formContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={styles.formContent}
         >
-          {/* Email Address or Username */}
-          <Text style={styles.label}>Email Address</Text>
-          <TextInput
-            style={[
-              styles.input,
-              focusedField === "email" && styles.inputFocused,
-            ]}
-            placeholder="Email Address"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            onFocus={() => setFocusedField("email")}
-            onBlur={() => setFocusedField(null)}
-            editable={!isSubmitting}
-          />
+          <Animated.View style={animatedFormStyle}>
+            {activeTab === "register" ? registerFields : signInFields}
 
-          {/* Password */}
-          <Text style={styles.label}>Password</Text>
-          <View
-            style={[
-              styles.passwordContainer,
-              focusedField === "password" && styles.passwordContainerFocused,
-            ]}
-          >
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              onFocus={() => setFocusedField("password")}
-              onBlur={() => setFocusedField(null)}
-              editable={!isSubmitting}
-            />
+            {isSubmitting && <Loader />}
+
+            <Text style={styles.orText}>OR</Text>
+
             <Pressable
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeIcon}
-              hitSlop={8}
+              style={styles.kingschatButton}
+              onPress={handleKingsChatSignIn}
               disabled={isSubmitting}
             >
-              <Ionicons
-                name={showPassword ? "eye-outline" : "eye-off-outline"}
-                size={24}
-                color="#999"
+              <Text style={styles.kingschatButtonText}>
+                Sign In with KingsChat
+              </Text>
+              <Image
+                source={require("@/assets/Icons/KC.png")}
+                style={styles.kingschatIcon}
+                resizeMode="contain"
               />
             </Pressable>
-          </View>
-
-          {/* Forgot Password Link */}
-          <Pressable style={styles.forgotPasswordContainer}>
-            <Text style={styles.forgotPasswordText}>Forgot Password</Text>
-          </Pressable>
-
-          {/* Sign In Button */}
-          <Pressable
-            style={[
-              styles.registerButton,
-              { marginTop: 100 },
-              isSubmitting && styles.registerButtonDisabled,
-            ]}
-            onPress={handleSignIn}
-            disabled={isSubmitting}
-          >
-            <Text style={styles.registerButtonText}>Sign In</Text>
-          </Pressable>
-
-          {/* Full Screen Loader Overlay */}
-          {isSubmitting && <Loader />}
-
-          {/* OR Divider */}
-          <Text style={styles.orText}>OR</Text>
-
-          {/* KingsChat Button */}
-          <Pressable
-            style={styles.kingschatButton}
-            onPress={handleKingsChatSignIn}
-            disabled={isSubmitting}
-          >
-            <Text style={styles.kingschatButtonText}>
-              Sign In with KingsChat
-            </Text>
-            <Image
-              source={require("@/assets/Icons/KC.png")}
-              style={styles.kingschatIcon}
-              resizeMode="contain"
-            />
-          </Pressable>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

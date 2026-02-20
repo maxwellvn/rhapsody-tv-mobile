@@ -1,7 +1,9 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { BottomNav } from "@/components/bottom-nav";
 import { DownloadedVideosItem } from "@/components/profile/downloaded-videos-item";
 import { ProfileInfo } from "@/components/profile/profile-info";
 import { ProfileSection } from "@/components/profile/profile-section";
+import { useAuth } from "@/context/AuthContext";
 import { userService } from "@/services/user.service";
 import {
     PaginatedWatchHistoryResponseDto,
@@ -13,10 +15,8 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
     Image,
     Pressable,
-    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -26,6 +26,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user: authUser } = useAuth();
 
   const [user, setUser] = useState<User | null>(null);
   const [watchHistory, setWatchHistory] =
@@ -34,7 +35,6 @@ export default function ProfileScreen() {
     useState<PaginatedWatchlistResponseDto | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
   const isMountedRef = useRef(true);
 
   const loadData = useCallback(async (showLoading: boolean = true) => {
@@ -46,14 +46,18 @@ export default function ProfileScreen() {
 
       const [profileRes, historyRes, watchlistRes] = await Promise.all([
         userService.getProfile(),
-        userService.getWatchHistory(1, 10),
-        userService.getWatchlist(1, 10),
+        userService.getWatchHistory(1, 50),
+        userService.getWatchlist(1, 50),
       ]);
 
       if (!isMountedRef.current) return;
 
       if (profileRes.success) {
-        setUser(profileRes.data);
+        setUser({
+          ...profileRes.data,
+          avatar: profileRes.data.avatar ?? authUser?.avatar,
+          gender: profileRes.data.gender ?? authUser?.gender,
+        });
       }
 
       if (historyRes.success) {
@@ -71,18 +75,7 @@ export default function ProfileScreen() {
         setLoading(false);
       }
     }
-  }, []);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await loadData(false);
-    } finally {
-      if (isMountedRef.current) {
-        setRefreshing(false);
-      }
-    }
-  }, [loadData]);
+  }, [authUser?.avatar, authUser?.gender]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -167,77 +160,73 @@ export default function ProfileScreen() {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={["#0066CC"]}
-            tintColor="#0066CC"
-          />
-        }
       >
-        <ProfileInfo
-          avatarSource={require("@/assets/images/Avatar.png")}
-          name={user?.fullName || "Guest User"}
-          onEditPress={handleEditProfile}
-        />
+        <View style={styles.contentInner}>
+          <ProfileInfo
+            avatarKey={user?.avatar}
+            gender={user?.gender}
+            seed={user?.id || user?.fullName || user?.email || "guest-user"}
+            name={user?.fullName || "Guest User"}
+            onEditPress={handleEditProfile}
+          />
 
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#000" />
-          </View>
-        )}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <AppSpinner size="small" color="#000" />
+            </View>
+          )}
 
-        {error && !loading && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+          {error && !loading && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
-        {/* History Section */}
-        <ProfileSection
-          title="History"
-          onSeeAllPress={() => console.log("View all history")}
-          items={(watchHistory?.items || [])
-            .filter((item) => !!item.video)
-            .slice(0, 3)
-            .map((item) => ({
-              imageSource: item.video?.thumbnailUrl
-                ? { uri: item.video.thumbnailUrl }
-                : require("@/assets/images/Image-4.png"),
-              title: item.video?.title || "Untitled Video",
-              badgeLabel: "History",
-              badgeColor: "#2563EB",
-              showBadge: true,
-              onPress: () => router.push("/program-profile"),
-            }))}
-        />
+          {/* History Section */}
+          <ProfileSection
+            title="History"
+            onSeeAllPress={() => router.push("/watch-history")}
+            items={(watchHistory?.items || [])
+              .filter((item) => !!item.video)
+              .map((item) => ({
+                imageSource: item.video?.thumbnailUrl
+                  ? { uri: item.video.thumbnailUrl }
+                  : require("@/assets/images/Image-4.png"),
+                title: item.video?.title || "Untitled Video",
+                badgeLabel: "History",
+                badgeColor: "#2563EB",
+                showBadge: true,
+                onPress: () =>
+                  item.video?.id && router.push(`/video?id=${item.video.id}`),
+              }))}
+          />
 
-        {/* Watchlist Section */}
-        <ProfileSection
-          title="Watchlist"
-          onSeeAllPress={() => console.log("View all watchlist")}
-          items={(watchlist?.items || [])
-            .filter((item) => !!item.video)
-            .slice(0, 3)
-            .map((item) => ({
-              imageSource: item.video?.thumbnailUrl
-                ? { uri: item.video.thumbnailUrl }
-                : require("@/assets/images/Image-1.png"),
-              title: item.video?.title || "Untitled Video",
-              badgeLabel: "Watchlist",
-              badgeColor: "#2563EB",
-              showBadge: true,
-              onPress: () =>
-                item.video?.id && router.push(`/video?id=${item.video.id}`),
-              onRemovePress: () =>
-                item.video?.id && handleRemoveFromWatchlist(item.video.id),
-            }))}
-        />
+          {/* Watchlist Section */}
+          <ProfileSection
+            title="Watchlist"
+            onSeeAllPress={() => router.push("/watchlist")}
+            items={(watchlist?.items || [])
+              .filter((item) => !!item.video)
+              .map((item) => ({
+                imageSource: item.video?.thumbnailUrl
+                  ? { uri: item.video.thumbnailUrl }
+                  : require("@/assets/images/Image-1.png"),
+                title: item.video?.title || "Untitled Video",
+                badgeLabel: "Watchlist",
+                badgeColor: "#2563EB",
+                showBadge: true,
+                onPress: () =>
+                  item.video?.id && router.push(`/video?id=${item.video.id}`),
+                onRemovePress: () =>
+                  item.video?.id && handleRemoveFromWatchlist(item.video.id),
+              }))}
+          />
 
-        {/* Downloaded Videos */}
-        <DownloadedVideosItem onPress={handleDownloadedVideos} />
+          {/* Downloaded Videos */}
+          <DownloadedVideosItem onPress={handleDownloadedVideos} />
+        </View>
       </ScrollView>
 
       <BottomNav activeTab="Profile" onTabPress={handleTabPress} />
@@ -272,6 +261,14 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: hp(110),
+  },
+  contentInner: {
+    width: "100%",
+    maxWidth: 980,
+    alignSelf: "center",
   },
   loadingContainer: {
     paddingVertical: hp(8),

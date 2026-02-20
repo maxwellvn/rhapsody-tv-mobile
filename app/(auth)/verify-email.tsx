@@ -93,7 +93,7 @@ export default function VerifyEmailScreen() {
             setTimeout(() => {
               router.replace({
                 pathname: "/(auth)/signin",
-                params: { email },
+                params: { email, tab: "signin" },
               });
             }, 1000);
           }
@@ -220,7 +220,7 @@ export default function VerifyEmailScreen() {
             style={{ marginTop: 16, alignSelf: "center" }}
           >
             <Text style={{ color: "#0066CC", fontSize: 14 }}>
-              Didn't receive the code? Resend
+              Did not receive the code? Resend
             </Text>
           </Pressable>
         </View>

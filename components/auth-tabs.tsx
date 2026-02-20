@@ -1,27 +1,67 @@
-import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
+type AuthTab = "register" | "signin";
 
 type AuthTabsProps = {
-  activeTab: 'register' | 'signin';
+  activeTab: AuthTab;
+  onTabChange: (tab: AuthTab) => void;
+  disabled?: boolean;
 };
 
-export function AuthTabs({ activeTab }: AuthTabsProps) {
-  const router = useRouter();
+export function AuthTabs({ activeTab, onTabChange, disabled = false }: AuthTabsProps) {
+  const [containerWidth, setContainerWidth] = useState(0);
+  const indicatorX = useRef(new Animated.Value(activeTab === "register" ? 0 : 1)).current;
+
+  useEffect(() => {
+    Animated.timing(indicatorX, {
+      toValue: activeTab === "register" ? 0 : 1,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+  }, [activeTab, indicatorX]);
+
+  const handleLayout = (event: LayoutChangeEvent) => {
+    setContainerWidth(event.nativeEvent.layout.width);
+  };
+
+  const indicatorWidth = Math.max((containerWidth - 8) / 2, 0);
+  const translateX = indicatorX.interpolate({
+    inputRange: [0, 1],
+    outputRange: [4, indicatorWidth + 4],
+  });
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={handleLayout}>
+      {containerWidth > 0 && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.activeIndicator,
+            {
+              width: indicatorWidth,
+              transform: [{ translateX }],
+            },
+          ]}
+        />
+      )}
+
       <Pressable
-        onPress={() => router.push('/(auth)/register')}
-        style={[
-          styles.tab,
-          styles.leftTab,
-          activeTab === 'register' && styles.activeTab,
-        ]}
+        onPress={() => onTabChange("register")}
+        style={styles.tab}
+        disabled={disabled || activeTab === "register"}
       >
         <Text
           style={[
             styles.tabText,
-            activeTab === 'register' && styles.activeTabText,
+            activeTab === "register" && styles.activeTabText,
           ]}
         >
           Register
@@ -29,18 +69,12 @@ export function AuthTabs({ activeTab }: AuthTabsProps) {
       </Pressable>
 
       <Pressable
-        onPress={() => router.push('/(auth)/signin')}
-        style={[
-          styles.tab,
-          styles.rightTab,
-          activeTab === 'signin' && styles.activeTab,
-        ]}
+        onPress={() => onTabChange("signin")}
+        style={styles.tab}
+        disabled={disabled || activeTab === "signin"}
       >
         <Text
-          style={[
-            styles.tabText,
-            activeTab === 'signin' && styles.activeTabText,
-          ]}
+          style={[styles.tabText, activeTab === "signin" && styles.activeTabText]}
         >
           Sign In
         </Text>
@@ -51,37 +85,46 @@ export function AuthTabs({ activeTab }: AuthTabsProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 12,
+    position: "relative",
+    flexDirection: "row",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
     padding: 4,
-    marginHorizontal: 40,
     borderWidth: 1,
-    borderColor: '#D0D0D0',
+    borderColor: "#D9E2EC",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  activeIndicator: {
+    position: "absolute",
+    top: 4,
+    bottom: 4,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5EAF0",
+    shadowColor: "#1E293B",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leftTab: {
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-  },
-  rightTab: {
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  activeTab: {
-    backgroundColor: '#0000FF',
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
   },
   tabText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#334155",
   },
   activeTabText: {
-    color: '#FFFFFF',
+    color: "#0F172A",
   },
 });

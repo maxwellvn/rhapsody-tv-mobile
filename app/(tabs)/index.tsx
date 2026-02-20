@@ -1,47 +1,31 @@
 import { BottomNav } from "@/components/bottom-nav";
 import { ChannelsListSection } from "@/components/home/channels-list-section";
-import { ContinueWatchingSection } from "@/components/home/continue-watching-section";
-import { FeaturedVideosSection } from "@/components/home/featured-videos-section";
-import { LiveNowSection } from "@/components/home/live-now-section";
-import { ProgramHighlightsSection } from "@/components/home/program-highlights-section";
-import { ProgramsSection } from "@/components/home/programs-section";
+import { useUnreadNotificationCount } from "@/hooks/queries/useNotificationQueries";
 import { SearchBar } from "@/components/search-bar";
-import { homepageKeys } from "@/hooks/queries/useHomepageQueries";
 import { styles } from "@/styles/home.styles";
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
 import {
   Image,
   Pressable,
-  RefreshControl,
   ScrollView,
-  View,
+  Text,
 } from "react-native";
+import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const [refreshing, setRefreshing] = useState(false);
+  const unreadCount = useUnreadNotificationCount();
 
   const handleNotificationPress = () => {
     router.push("/notifications");
   };
 
-  const handleSearch = (text: string) => {
-    console.log("Search:", text);
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await queryClient.refetchQueries({ queryKey: homepageKeys.all });
-    } catch (error) {
-      console.error("Error refreshing home data:", error);
-    } finally {
-      setRefreshing(false);
-    }
+  const handleSearchSubmit = (text: string) => {
+    const q = text.trim();
+    if (!q) return;
+    router.push(`/(tabs)/discover?query=${encodeURIComponent(q)}`);
   };
 
   const handleTabPress = (tab: string) => {
@@ -57,7 +41,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
@@ -76,6 +60,26 @@ export default function HomeScreen() {
             style={styles.notificationIcon}
             resizeMode="contain"
           />
+          {unreadCount > 0 && (
+            <View
+              style={{
+                position: "absolute",
+                top: -4,
+                right: -4,
+                minWidth: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: "#EF4444",
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 4,
+              }}
+            >
+              <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "700" }}>
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
+          )}
         </Pressable>
       </View>
 
@@ -83,34 +87,24 @@ export default function HomeScreen() {
       <View style={styles.searchContainer}>
         <SearchBar
           placeholder="Search channels and programs..."
-          onSearch={handleSearch}
+          onSubmit={handleSearchSubmit}
         />
       </View>
 
       {/* Content */}
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingHorizontal: 0 },
+        ]}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#0066CC"]} // Custom color for the spinner
-            tintColor="#0066CC" // For iOS
-          />
-        }
       >
-        <LiveNowSection />
-        <ContinueWatchingSection />
         <ChannelsListSection />
-        <ProgramsSection />
-        <FeaturedVideosSection />
-        <ProgramHighlightsSection />
       </ScrollView>
 
       {/* Bottom Navigation */}
       <BottomNav activeTab="Home" onTabPress={handleTabPress} />
-    </View>
+    </SafeAreaView>
   );
 }

@@ -1,7 +1,20 @@
-import { View, Text, Image, StyleSheet, Pressable, ImageSourcePropType } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Pressable,
+  ImageSourcePropType,
+  useWindowDimensions,
+} from 'react-native';
 import { FONTS } from '@/styles/global';
 import { Badge } from '../badge';
-import { wp, hp, fs, spacing, borderRadius, dimensions } from '@/utils/responsive';
+import { fs, spacing, borderRadius, dimensions } from '@/utils/responsive';
+import {
+  getCardDimensions,
+  VIDEO_MEDIA_ASPECT_RATIO,
+} from '@/utils/card-dimensions';
+import { useMemo } from 'react';
 
 type VideoCardProps = {
   imageSource: ImageSourcePropType;
@@ -20,13 +33,28 @@ export function VideoCard({
   showBadge = false,
   onPress 
 }: VideoCardProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const cardDimensions = useMemo(
+    () => getCardDimensions(windowWidth),
+    [windowWidth],
+  );
+
   return (
-    <Pressable style={styles.container} onPress={onPress}>
+    <Pressable
+      style={[
+        styles.container,
+        {
+          width: cardDimensions.compactVideoCardWidth,
+          marginRight: cardDimensions.compactVideoCardGap,
+        },
+      ]}
+      onPress={onPress}
+    >
       <View style={styles.imageContainer}>
         <Image 
           source={imageSource} 
           style={styles.image}
-          resizeMode="cover"
+          resizeMode="contain"
         />
         {showBadge && badgeLabel && (
           <View style={styles.badgeContainer}>
@@ -43,13 +71,11 @@ export function VideoCard({
 
 const styles = StyleSheet.create({
   container: {
-    width: dimensions.isTablet ? wp(200) : wp(160),
-    marginRight: spacing.md,
   },
   imageContainer: {
     position: 'relative',
     width: '100%',
-    height: dimensions.isTablet ? hp(120) : hp(90),
+    aspectRatio: VIDEO_MEDIA_ASPECT_RATIO,
     borderRadius: borderRadius.sm,
     overflow: 'hidden',
     backgroundColor: '#E5E5E5',

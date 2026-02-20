@@ -24,9 +24,6 @@ export function LiveNowSection() {
         `/live-video?liveStreamId=${liveNowData.liveStreamId}`,
         // `/live-video?id=${liveNowData.videoId}&liveStreamId=${liveNowData.liveStreamId}`,
       );
-    } else {
-      // Navigate to live video page even for mock data
-      router.push("/live-video");
     }
   };
 
@@ -35,7 +32,7 @@ export function LiveNowSection() {
     return <LiveNowSkeleton />;
   }
 
-  // Show mock data if no live program available
+  // Show empty state if no live program is available
   if (!liveNowData) {
     return (
       <View style={styles.container}>
@@ -43,20 +40,9 @@ export function LiveNowSection() {
           <Text style={styles.title}>Live Now</Text>
           <View style={styles.redDot} />
         </View>
-        <View style={styles.noDataContainer}>
+        <View style={[styles.noDataContainer, { marginBottom: 0 }]}>
           <Text style={styles.noDataText}>No live programs currently</Text>
         </View>
-        {/* Show original mock data */}
-        <Pressable onPress={handleLivePress} style={styles.videoCard}>
-          <Image
-            source={require("@/assets/images/carusel-2.png")}
-            style={styles.thumbnail}
-            resizeMode="cover"
-          />
-          <View style={styles.liveBadgeContainer}>
-            <Badge label="Live" dotColor="#FF0000" />
-          </View>
-        </Pressable>
       </View>
     );
   }
@@ -73,12 +59,14 @@ export function LiveNowSection() {
       <Pressable onPress={handleLivePress} style={styles.videoCard}>
         <Image
           source={
-            liveNowData.channel.coverImageUrl
+            liveNowData.thumbnailUrl
+              ? { uri: liveNowData.thumbnailUrl }
+              : liveNowData.channel?.coverImageUrl
               ? { uri: liveNowData.channel.coverImageUrl }
               : require("@/assets/images/carusel-2.png")
           }
           style={styles.thumbnail}
-          resizeMode="cover"
+          resizeMode="contain"
         />
         {liveNowData.isLive && (
           <View style={styles.liveBadgeContainer}>
@@ -95,7 +83,9 @@ export function LiveNowSection() {
               {liveNowData.description}
             </Text>
           )}
-          <Text style={styles.channelName}>{liveNowData.channel.name}</Text>
+          {liveNowData.channel?.name && (
+            <Text style={styles.channelName}>{liveNowData.channel.name}</Text>
+          )}
         </View>
       </Pressable>
     </View>

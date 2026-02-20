@@ -1,6 +1,8 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { NotificationItem } from "@/components/notifications/notification-item";
 import { NotificationsHeader } from "@/components/notifications/notifications-header";
 import {
+    useDeleteNotification,
     useMarkAllNotificationsRead,
     useMarkNotificationRead,
     useNotifications,
@@ -8,14 +10,15 @@ import {
 import { styles } from "@/styles/notifications.styles";
 import { NotificationDto } from "@/types/api.types";
 import { formatRelativeTime } from "@/utils/formatters";
-import { router, Stack } from "expo-router";
+import { Href, router, Stack } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-    ActivityIndicator,
+    Alert,
     Pressable,
     ScrollView,
     StatusBar,
     Text,
+    TextInput,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,14 +27,19 @@ export default function NotificationsScreen() {
   const [activeTab, setActiveTab] = useState<"All" | "Comments" | "Reminders">(
     "All",
   );
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const {
     data: notificationsData,
     isLoading,
     isFetching,
     error,
+    refetch,
   } = useNotifications(1, 20);
-  const { mutate: markRead, isPending: isMarkingRead } =
+  const { mutateAsync: markRead, isPending: isMarkingRead } =
     useMarkNotificationRead();
+  const { mutateAsync: deleteNotification, isPending: isDeletingNotification } =
+    useDeleteNotification();
   const { mutate: markAllRead, isPending: isMarkingAll } =
     useMarkAllNotificationsRead();
 
@@ -40,35 +48,195 @@ export default function NotificationsScreen() {
   };
 
   const handleSearch = () => {
-    console.log("Search pressed");
+    setIsSearchVisible((prev) => !prev);
+    if (isSearchVisible) {
+      setSearchQuery("");
+    }
   };
 
   const handleMenu = () => {
-    markAllRead();
+    Alert.alert("Notifications", "Choose an action", [
+      {
+        text: "Mark all as read",
+        onPress: () => markAllRead(),
+      },
+      {
+        text: "Refresh",
+        onPress: () => refetch(),
+      },
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+    ]);
   };
 
-  const handleNotificationPress = (notification: NotificationDto) => {
+  const pickStringFromData = (
+    data: Record<string, unknown> | undefined,
+    paths: string[][],
+  ): string | undefined => {
+    if (!data) return undefined;
+
+    for (const path of paths) {
+      let current: unknown = data;
+      for (const key of path) {
+        if (!current || typeof current !== "object") {
+          current = undefined;
+          break;
+        }
+        current = (current as Record<string, unknown>)[key];
+      }
+
+      if (typeof current === "string" && current.trim().length > 0) {
+        return current.trim();
+      }
+    }
+
+    return undefined;
+  };
+
+  const isLikelyObjectId = (value?: string) =>
+    !!value && /^[a-fA-F0-9]{24}$/.test(value);
+
+  const resolveNotificationRoute = (notification: NotificationDto): Href => {
+    const data = notification.data as Record<string, unknown> | undefined;
+    const videoId = pickStringFromData(data, [
+      ["videoId"],
+      ["video", "id"],
+      ["video", "_id"],
+    ]);
+    const livestreamId = pickStringFromData(data, [
+      ["livestreamId"],
+      ["liveStreamId"],
+      ["livestream", "id"],
+      ["livestream", "_id"],
+    ]);
+    const programId = pickStringFromData(data, [
+      ["programId"],
+      ["program", "id"],
+      ["program", "_id"],
+    ]);
+    const channelId = pickStringFromData(data, [["channelId"], ["channel", "id"], ["channel", "_id"]]);
+    const channelSlug = pickStringFromData(data, [
+      ["channelSlug"],
+      ["channel", "slug"],
+    ]);
+
+    if (isLikelyObjectId(videoId)) {
+      return { pathname: "/video", params: { id: videoId } };
+    }
+
+    if (isLikelyObjectId(livestreamId)) {
+      return { pathname: "/live-video", params: { liveStreamId: livestreamId } };
+    }
+
+    if (isLikelyObjectId(programId)) {
+      return {
+        pathname: "/program-profile",
+        params: {
+          id: programId,
+          channelId: channelId || "",
+          channelSlug: channelSlug || "",
+        },
+      };
+    }
+
+    if (channelSlug) return "/(tabs)";
+
+    if (
+      notification.type === "channel_go_live" ||
+      notification.type === "channel_new_video" ||
+      notification.type === "channel_new_program"
+    ) {
+      return "/(tabs)/schedule";
+    }
+
+    return "/notifications";
+  };
+
+  const handleNotificationPress = async (notification: NotificationDto) => {
     if (!notification.isRead) {
-      markRead(notification.id);
+      try {
+        await markRead(notification.id);
+      } catch {
+        // Continue navigation even if read status update fails.
+      }
+    }
+
+    const route = resolveNotificationRoute(notification);
+    if (route !== "/notifications") {
+      router.push(route);
     }
   };
 
   const notifications = notificationsData?.notifications ?? [];
+
+  const resolveImageFromData = (
+    data: Record<string, unknown> | undefined,
+    key: string,
+  ) => {
+    const url = data?.[key];
+    if (typeof url === "string" && url.trim().length > 0) {
+      return { uri: url };
+    }
+    return undefined;
+  };
   const filteredNotifications = useMemo(() => {
+    let result = notifications;
+
     if (activeTab === "Comments") {
-      return notifications.filter((item) =>
+      result = result.filter((item) =>
         ["comment_liked", "comment_replied"].includes(item.type),
       );
-    }
-
-    if (activeTab === "Reminders") {
-      return notifications.filter((item) =>
-        ["channel_go_live", "channel_new_program"].includes(item.type),
+    } else if (activeTab === "Reminders") {
+      result = result.filter((item) =>
+        ["channel_go_live", "channel_new_program", "channel_new_video"].includes(
+          item.type,
+        ),
       );
     }
 
-    return notifications;
-  }, [activeTab, notifications]);
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return result;
+
+    return result.filter((item) => {
+      const title = item.title.toLowerCase();
+      const body = item.body.toLowerCase();
+      return title.includes(q) || body.includes(q);
+    });
+  }, [activeTab, notifications, searchQuery]);
+
+  const handleNotificationMenu = (notification: NotificationDto) => {
+    Alert.alert("Notification", "Choose an action", [
+      {
+        text: "Open",
+        onPress: () => handleNotificationPress(notification),
+      },
+      !notification.isRead
+        ? {
+            text: "Mark as read",
+            onPress: () => markRead(notification.id),
+          }
+        : {
+            text: "Already read",
+          },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteNotification(notification.id);
+          } catch {
+            Alert.alert("Error", "Failed to delete notification.");
+          }
+        },
+      },
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+    ]);
+  };
 
   return (
     <>
@@ -83,6 +251,19 @@ export default function NotificationsScreen() {
           onSearchPress={handleSearch}
           onMenuPress={handleMenu}
         />
+        {isSearchVisible && (
+          <View style={styles.searchContainer}>
+            <TextInput
+              placeholder="Search notifications..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchInput}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="search"
+            />
+          </View>
+        )}
 
         {/* Tabs */}
         <View style={styles.tabsContainer}>
@@ -129,9 +310,13 @@ export default function NotificationsScreen() {
           </Pressable>
         </View>
 
-        {(isLoading || isFetching || isMarkingAll || isMarkingRead) && (
+        {(isLoading ||
+          isFetching ||
+          isMarkingAll ||
+          isMarkingRead ||
+          isDeletingNotification) && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#000" />
+            <AppSpinner size="small" color="#000" />
           </View>
         )}
 
@@ -152,18 +337,30 @@ export default function NotificationsScreen() {
               <Text style={styles.emptyText}>No notifications yet.</Text>
             </View>
           ) : (
-            filteredNotifications.map((notification) => (
+            filteredNotifications.map((notification) => {
+              const notificationData = notification.data as
+                | Record<string, unknown>
+                | undefined;
+              const avatar = resolveImageFromData(notificationData, "avatarUrl");
+              const thumbnail = resolveImageFromData(
+                notificationData,
+                "thumbnailUrl",
+              );
+
+              return (
               <NotificationItem
                 key={notification.id}
-                avatar={require("@/assets/images/Avatar.png")}
+                avatar={avatar}
                 title={notification.title}
                 subtitle={notification.body}
                 timeAgo={formatRelativeTime(notification.createdAt)}
-                thumbnail={require("@/assets/images/Image-11.png")}
+                thumbnail={thumbnail}
+                isRead={notification.isRead}
                 onPress={() => handleNotificationPress(notification)}
-                onMenuPress={() => handleNotificationPress(notification)}
+                onMenuPress={() => handleNotificationMenu(notification)}
               />
-            ))
+              );
+            })
           )}
         </ScrollView>
       </SafeAreaView>
