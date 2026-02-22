@@ -1,3 +1,4 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { SettingsItemArrow } from "@/components/settings/settings-item-arrow";
 import { SettingsItemToggle } from "@/components/settings/settings-item-toggle";
 import { SettingsSection } from "@/components/settings/settings-section";
@@ -30,6 +31,11 @@ export default function DownloadsScreen() {
 
   const [downloadOverWifiOnly, setDownloadOverWifiOnly] = useState(false);
   const [downloadQuality, setDownloadQuality] = useState("medium");
+  const downloadQualityLabelMap: Record<string, string> = {
+    low: "Low (144p)",
+    medium: "Medium (360p)",
+    high: "High (720p)",
+  };
 
   useEffect(() => {
     if (settings) {
@@ -93,14 +99,14 @@ export default function DownloadsScreen() {
         >
           {(isLoading || isUpdating) && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#000" />
+              <AppSpinner size="small" color="#000" />
             </View>
           )}
 
           <SettingsSection>
             <SettingsItemArrow
               label="Download Quality"
-              value={downloadQuality}
+              value={downloadQualityLabelMap[downloadQuality] ?? downloadQuality}
               onPress={handleDownloadQuality}
             />
           </SettingsSection>

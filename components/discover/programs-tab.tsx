@@ -1,97 +1,76 @@
+import { usePrograms } from '@/hooks/queries/useHomepageQueries';
 import { FONTS } from '@/styles/global';
-import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { EmptyState } from '@/components/empty-state';
 import { VideoCard } from './video-card';
 
-export function ProgramsTab() {
-  const handleVideoPress = (title: string) => {
-    console.log('Video pressed:', title);
+type ProgramsTabProps = {
+  query?: string;
+};
+
+export function ProgramsTab({ query = '' }: ProgramsTabProps) {
+  const router = useRouter();
+  const { data: programs = [] } = usePrograms(50);
+
+  const q = query.trim().toLowerCase();
+  const filteredPrograms = programs.filter(
+    (program) =>
+      !q ||
+      program.title.toLowerCase().includes(q) ||
+      (program.channel?.name || '').toLowerCase().includes(q),
+  );
+
+  const handleProgramPress = (
+    programId: string,
+    channelId?: string,
+    channelSlug?: string,
+  ) => {
+    router.push(
+      `/program-profile?id=${programId}&channelId=${channelId || ""}&channelSlug=${channelSlug || ""}`,
+    );
   };
 
   return (
     <>
       <Text style={styles.sectionTitle}>Programs</Text>
-      <View style={styles.grid}>
-        <View style={styles.videoCardWrapper}>
-          <VideoCard
-            imageSource={require('@/assets/images/Image-4.png')}
-            title="Rhapsody Dailies"
-            badgeLabel="Series"
-            badgeColor="#2563EB"
-            showBadge={true}
-            onPress={() => handleVideoPress('Rhapsody Dailies')}
-          />
+      {filteredPrograms.length === 0 ? (
+        <EmptyState
+          iconName="tv-outline"
+          title={q ? "No matching programs" : "No programs yet"}
+          subtitle={
+            q
+              ? `Try another keyword for "${query}".`
+              : "Programs will appear here once available."
+          }
+          compact
+        />
+      ) : (
+        <View style={styles.grid}>
+          {filteredPrograms.map((program) => (
+            <View key={program.id} style={styles.videoCardWrapper}>
+              <VideoCard
+                imageSource={
+                  (program.channel?.coverImageUrl
+                    ? ({ uri: program.channel.coverImageUrl } as ImageSourcePropType)
+                    : (require('@/assets/images/Image-4.png') as ImageSourcePropType))
+                }
+                title={program.title}
+                badgeLabel={program.isLive ? 'Live' : 'Series'}
+                badgeColor={program.isLive ? '#DC2626' : '#2563EB'}
+                showBadge={true}
+                onPress={() =>
+                  handleProgramPress(
+                    program.id,
+                    program.channel?.id,
+                    program.channel?.slug,
+                  )
+                }
+              />
+            </View>
+          ))}
         </View>
-        <View style={styles.videoCardWrapper}>
-          <VideoCard
-            imageSource={require('@/assets/images/Image-1.png')}
-            title="Rhapsody On The Daily Frontier"
-            badgeLabel="New"
-            badgeColor="#2563EB"
-            showBadge={true}
-            onPress={() => handleVideoPress('Rhapsody On The Daily Frontier')}
-          />
-        </View>
-        <View style={styles.videoCardWrapper}>
-          <VideoCard
-            imageSource={require('@/assets/images/Image-5.png')}
-            title="The Day God Spoke My Language"
-            badgeLabel="New"
-            badgeColor="#2563EB"
-            showBadge={true}
-            onPress={() => handleVideoPress('The Day God Spoke My Language')}
-          />
-        </View>
-        <View style={styles.videoCardWrapper}>
-          <VideoCard
-            imageSource={require('@/assets/images/Image-10.png')}
-            title="DISCARD DREAMS LIKE CHAFF 23RD OF JULY ..."
-            badgeLabel="New"
-            badgeColor="#2563EB"
-            showBadge={true}
-            onPress={() => handleVideoPress('DISCARD DREAMS LIKE CHAFF')}
-          />
-        </View>
-        <View style={styles.videoCardWrapper}>
-          <VideoCard
-            imageSource={require('@/assets/images/Image-9.png')}
-            title="JOURNEY TO ALL LANGUAGES"
-            badgeLabel="New"
-            badgeColor="#2563EB"
-            showBadge={true}
-            onPress={() => handleVideoPress('JOURNEY TO ALL LANGUAGES')}
-          />
-        </View>
-        <View style={styles.videoCardWrapper}>
-          <VideoCard
-            imageSource={require('@/assets/images/Image-8.png')}
-            title="This Morning with Rhapsody of Realities"
-            badgeLabel="New"
-            badgeColor="#2563EB"
-            showBadge={true}
-            onPress={() => handleVideoPress('This Morning with Rhapsody')}
-          />
-        </View>
-        <View style={styles.videoCardWrapper}>
-          <VideoCard
-            imageSource={require('@/assets/images/Image-7.png')}
-            title="RHAPATHON WITH PASTOR CHRIS HIGHLIGHTS"
-            badgeLabel="New"
-            badgeColor="#2563EB"
-            showBadge={true}
-            onPress={() => handleVideoPress('This Morning with Rhapsody')}
-          />
-        </View>
-        <View style={styles.videoCardWrapper}>
-          <VideoCard
-            imageSource={require('@/assets/images/carusel-4.png')}
-            title="DISCARD DREAMS LIKE CHAFF 23RD OF JULY 2025"
-            badgeLabel="New"
-            badgeColor="#2563EB"
-            showBadge={true}
-            onPress={() => handleVideoPress('This Morning with Rhapsody')}
-          />
-        </View>
-      </View>
+      )}
     </>
   );
 }

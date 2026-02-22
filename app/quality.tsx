@@ -1,3 +1,4 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { SettingsGroupTitle } from "@/components/settings/settings-group-title";
 import { SettingsItemRadio } from "@/components/settings/settings-item-radio";
 import { SettingsSection } from "@/components/settings/settings-section";
@@ -70,7 +71,7 @@ export default function QualityScreen() {
         >
           {(isLoading || isUpdating) && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#000" />
+              <AppSpinner size="small" color="#000" />
             </View>
           )}
 
@@ -189,7 +190,7 @@ export default function QualityScreen() {
             />
             <SettingsItemRadio
               label="Higher audio quality"
-              description="Adjust for some videos with YouTube Premium. Uses more data."
+              description="Higher quality playback for supported videos. Uses more data."
               selected={audioQuality === "higher"}
               onPress={() => {
                 setAudioQuality("higher");

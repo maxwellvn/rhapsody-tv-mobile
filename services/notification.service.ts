@@ -33,6 +33,13 @@ class NotificationService {
   }
 
   /**
+   * Delete a notification
+   */
+  async deleteNotification(notificationId: string): Promise<ApiResponse<void>> {
+    return api.delete<void>(API_ENDPOINTS.NOTIFICATIONS.DELETE(notificationId));
+  }
+
+  /**
    * Mark all notifications as read
    */
   async markAllAsRead(): Promise<ApiResponse<void>> {

@@ -17,6 +17,21 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: "flex-start",
   },
+  searchContainer: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: hp(8),
+  },
+  searchInput: {
+    height: hp(42),
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: wp(12),
+    fontSize: fs(14),
+    fontFamily: FONTS.regular,
+    color: "#111827",
+    backgroundColor: "#FFFFFF",
+  },
   tab: {
     paddingHorizontal: wp(12),
     paddingVertical: hp(6),

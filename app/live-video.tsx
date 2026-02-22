@@ -1,8 +1,9 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { LiveChat } from "@/components/live-video/live-chat";
 import { LiveChatModal } from "@/components/live-video/live-chat-modal";
 import { VideoPlayer } from "@/components/video-player";
 import { VideoRecommendationCard } from "@/components/video-recommendation-card";
-import { useToast } from "@/context/ToastContext";
+import { DEFAULT_PROFILE_AVATAR } from "@/constants/avatar";
 import {
   useChannelSubscriptionStatus,
   useChannelVideos,
@@ -18,11 +19,12 @@ import { styles } from "@/styles/live-video.styles";
 import { formatNumber, formatRelativeTime } from "@/utils/formatters";
 import { dimensions, fs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   Pressable,
   ScrollView,
@@ -36,13 +38,18 @@ export default function LiveVideoScreen() {
     liveStreamId?: string;
   }>();
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const { showSuccess, showError } = useToast();
 
-  const fallbackStreamUrl = useMemo(
-    () =>
-      "https://2nbyjxnbl53k-hls-live.5centscdn.com/RTV/59a49be6dc0f146c57cd9ee54da323b1.sdp/playlist.m3u8",
-    [],
-  );
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (!isChatOpen) return false;
+      setTimeout(() => {
+        setIsChatOpen(false);
+      }, 0);
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [isChatOpen]);
 
   console.log("liveStreamId", liveStreamId);
 
@@ -111,10 +118,7 @@ export default function LiveVideoScreen() {
 
   // Handle subscribe/unsubscribe
   const handleSubscribe = async () => {
-    if (!channelId) {
-      showError("Channel information not available");
-      return;
-    }
+    if (!channelId) return;
 
     try {
       if (isSubscribed) {
@@ -123,60 +127,49 @@ export default function LiveVideoScreen() {
           slug: channelSlug,
         });
         setIsSubscribed(false);
-        showSuccess("Unsubscribed from channel");
       } else {
         await subscribeMutation.mutateAsync({
           id: channelId,
           slug: channelSlug,
         });
         setIsSubscribed(true);
-        showSuccess("Subscribed to channel!");
       }
     } catch (err) {
       console.error("Subscription error:", err);
-      showError("Failed to update subscription");
-      // Reset the local state on error
       setIsSubscribed(subscriptionStatus?.isSubscribed ?? false);
     }
   };
 
   // Handle like/unlike
   const handleLike = async () => {
-    console.log(
-      "handleLike called - liveStreamId:",
-      liveStreamId,
-      "videoId:",
-      videoId,
-      "isSocketConnected:",
-      isSocketConnected,
-    );
-
     if (liveStreamId) {
-      console.log("Toggling like for livestream");
       try {
         toggleSocketLike();
-        console.log("Like toggled successfully");
-        showSuccess(isLiked ? "Removed like" : "Liked!");
       } catch (err) {
         console.error("Error toggling like:", err);
-        showError("Failed to update like");
       }
       return;
     }
 
-    if (!videoId) {
-      console.log("No videoId available");
-      showError("Video information not available");
-      return;
-    }
+    if (!videoId) return;
 
     try {
       await toggleLikeMutation.mutateAsync(videoId);
-      showSuccess(isLiked ? "Removed like" : "Liked!");
     } catch {
-      showError("Failed to update like");
+      // like state reverts via query refetch
     }
   };
+
+  // Pause video when another screen is pushed on top of this one
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setIsScreenFocused(true);
+      return () => {
+        setIsScreenFocused(false);
+      };
+    }, [])
+  );
 
   // Miniplayer Integration
   const { minimize, close, activeVideo } = useVideoOverlay();
@@ -194,7 +187,7 @@ export default function LiveVideoScreen() {
     if (!liveProgram) return;
 
     minimize({
-      videoUri: liveProgram.rtmpUrl || fallbackStreamUrl,
+      videoUri: liveProgram.playbackUrl || "",
       title: liveProgram.title,
       channelName: liveProgram.channel?.name,
       channelAvatar: liveProgram.channel?.logoUrl,
@@ -217,7 +210,9 @@ export default function LiveVideoScreen() {
   const recommendedVideos =
     channelVideosData?.videos?.filter((video) => video.id !== videoId) || [];
 
-  const videoUri = liveProgram?.rtmpUrl ?? fallbackStreamUrl;
+  // playbackUrl is the HLS/m3u8 stream for viewers; rtmpUrl is the ingest URL for broadcasters
+  const videoUri = liveProgram?.playbackUrl || undefined;
+  const isChatEnabled = liveProgram?.isChatEnabled ?? true;
   const isLoadingVideo = isLoadingProgram;
 
   return (
@@ -229,25 +224,28 @@ export default function LiveVideoScreen() {
         {/* Video Player - Always Visible */}
         {isLoadingVideo ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <AppSpinner size="large" color="#FFFFFF" />
             <Text style={styles.loadingText}>Loading video...</Text>
           </View>
         ) : (
           <VideoPlayer
             videoUri={videoUri}
-            thumbnailSource={require("@/assets/images/carusel-2.png")}
+            thumbnailSource={
+              liveProgram?.thumbnailUrl
+                ? { uri: liveProgram.thumbnailUrl }
+                : require("@/assets/images/carusel-2.png")
+            }
             isLive={true}
             onMinimize={handleMinimize}
+            paused={!isScreenFocused}
           />
         )}
 
-        {isChatOpen ? (
+        {isChatOpen && isChatEnabled ? (
           /* Live Chat View */
           <LiveChatModal
             onClose={() => setIsChatOpen(false)}
-            viewerCount={
-              viewerCount > 0 ? `${(viewerCount / 1000).toFixed(1)}k` : "0"
-            }
+            viewerCount={formatNumber(viewerCount)}
             comments={comments}
             onSendMessage={sendComment}
           />
@@ -272,7 +270,7 @@ export default function LiveVideoScreen() {
                   source={
                     liveProgram?.channel?.logoUrl
                       ? { uri: liveProgram.channel.logoUrl }
-                      : require("@/assets/images/Avatar.png")
+                      : DEFAULT_PROFILE_AVATAR
                   }
                   style={styles.channelIcon}
                   resizeMode="contain"
@@ -287,7 +285,7 @@ export default function LiveVideoScreen() {
                     color="#737373"
                   />
                   <Text style={styles.viewCount}>
-                    {viewerCount > 0 ? `${viewerCount} watching` : "Live now"}
+                    {`${Math.max(0, viewerCount)} watching`}
                   </Text>
                 </View>
                 {liveProgram?.startTime && (
@@ -318,7 +316,7 @@ export default function LiveVideoScreen() {
                   disabled={isSubscribeLoading || !channelId}
                 >
                   {isSubscribeLoading ? (
-                    <ActivityIndicator
+                    <AppSpinner
                       size="small"
                       color={isSubscribed ? "#000000" : "#FFFFFF"}
                     />
@@ -343,7 +341,7 @@ export default function LiveVideoScreen() {
                   disabled={isLikeLoading}
                 >
                   {isLikeLoading ? (
-                    <ActivityIndicator size="small" color="#000000" />
+                    <AppSpinner size="small" color="#000000" />
                   ) : (
                     <>
                       <Ionicons
@@ -392,8 +390,10 @@ export default function LiveVideoScreen() {
               </ScrollView>
             </View>
 
-            {/* Live Chat Section */}
-            <LiveChat onPress={() => setIsChatOpen(true)} />
+            {/* Live Chat Section - only shown when chat is enabled */}
+            {isChatEnabled && (
+              <LiveChat onPress={() => setIsChatOpen(true)} />
+            )}
 
             {/* Video Recommendations */}
             <View style={styles.recommendationsContainer}>
@@ -415,7 +415,7 @@ export default function LiveVideoScreen() {
                     channelAvatar={
                       liveProgram?.channel?.logoUrl
                         ? { uri: liveProgram.channel.logoUrl }
-                        : require("@/assets/images/Avatar.png")
+                        : DEFAULT_PROFILE_AVATAR
                     }
                     viewCount={`${formatNumber(video.viewCount)} views`}
                     timeAgo={

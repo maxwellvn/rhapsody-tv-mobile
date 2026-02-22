@@ -1,12 +1,11 @@
 import { API_CONFIG } from "@/config/api.config";
 import { ApiError, ApiResponse } from "@/types/api.types";
 import { storage } from "@/utils/storage";
-import { toastService } from "@/utils/toast.service";
 import axios, {
-    AxiosError,
-    AxiosInstance,
-    AxiosRequestConfig,
-    AxiosResponse,
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
 } from "axios";
 
 /**
@@ -20,6 +19,9 @@ const apiClient: AxiosInstance = axios.create({
     Accept: "application/json",
   },
 });
+
+const API_DEBUG_LOGS_ENABLED =
+  __DEV__ && process.env.EXPO_PUBLIC_API_DEBUG_LOGS === "1";
 
 /**
  * Request Interceptor
@@ -54,18 +56,8 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     // Log response in development
-    if (__DEV__) {
+    if (API_DEBUG_LOGS_ENABLED) {
       console.log(`📥 API Response: ${JSON.stringify(response.data)}`);
-    }
-
-    const config = response.config as AxiosRequestConfig & {
-      skipToast?: boolean;
-    };
-    const method = config.method?.toLowerCase();
-    const message = response.data?.message;
-
-    if (!config.skipToast && message && method && method !== "get") {
-      toastService.success(message);
     }
 
     return response;
@@ -75,20 +67,21 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
       skipToast?: boolean;
     };
+    const suppressErrorLog =
+      error.config?.headers &&
+      ((error.config.headers as Record<string, unknown>)["x-silent-error-log"] ===
+        "1" ||
+        (error.config.headers as Record<string, unknown>)["x-silent-error-log"] ===
+          1);
 
     // Log error in development
-    if (__DEV__) {
+    if (API_DEBUG_LOGS_ENABLED && !suppressErrorLog) {
       console.log("📥 API Error Response:", error);
       console.error("❌ API Error:", {
         status: error.response?.status,
         url: error.config?.url,
         success: false,
       });
-    }
-
-    const errorMessage = error.response?.data?.message;
-    if (errorMessage && !originalRequest?.skipToast) {
-      toastService.error(errorMessage);
     }
 
     // Handle 401 Unauthorized - Token expired
@@ -128,6 +121,12 @@ apiClient.interceptors.response.use(
 
         return Promise.reject(refreshError);
       }
+    }
+
+    // Handle stale auth when switching environments (e.g. prod token on local DB)
+    if (error.response?.status === 404 && error.config?.url === "/users/me") {
+      await storage.clearTokens();
+      await storage.clearUserData();
     }
 
     return Promise.reject(error);
@@ -224,15 +223,50 @@ class ApiClient {
     formData: FormData,
     onUploadProgress?: (progressEvent: any) => void,
   ): Promise<ApiResponse<T>> {
+    void onUploadProgress;
     try {
-      const response = await apiClient.post<ApiResponse<T>>(url, formData, {
+      const token = await storage.getAccessToken();
+      const controller = new AbortController();
+      const timeout = setTimeout(
+        () => controller.abort(),
+        Math.max(API_CONFIG.TIMEOUT, 120000),
+      );
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
+        method: "POST",
         headers: {
-          "Content-Type": "multipart/form-data",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        onUploadProgress,
+        body: formData,
+        signal: controller.signal,
       });
-      return response.data;
+      clearTimeout(timeout);
+
+      const responseBody = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw {
+          isUploadHttpError: true,
+          status: response.status,
+          data: responseBody,
+        };
+      }
+
+      return responseBody as ApiResponse<T>;
     } catch (error) {
+      if ((error as any)?.isUploadHttpError) {
+        const httpError = error as {
+          status: number;
+          data?: { message?: string; errors?: unknown };
+        };
+        throw {
+          success: false,
+          message: httpError.data?.message || "Upload failed",
+          errors: httpError.data?.errors,
+          statusCode: httpError.status,
+        } as ApiError;
+      }
       throw this.handleError(error);
     }
   }

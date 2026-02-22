@@ -1,8 +1,9 @@
 import { useVideoOverlay } from "@/context/VideoOverlayContext";
+import { usePlaybackKeepAwake } from "@/hooks/usePlaybackKeepAwake";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useVideoPlayer, VideoView } from "expo-video";
-import { useEffect } from "react";
+import { AVPlaybackStatus, ResizeMode, Video } from "expo-av";
+import { useEffect, useRef } from "react";
 import {
   Dimensions,
   Platform,
@@ -11,33 +12,38 @@ import {
   View,
 } from "react-native";
 
-const { width } = Dimensions.get("window");
-const MINI_PLAYER_WIDTH = width * 0.4; // 40% of screen width
+import { MAX_PHONE_WIDTH } from "@/utils/responsive";
+
+const { width: rawWidth } = Dimensions.get("window");
+const MINI_PLAYER_WIDTH = Math.min(rawWidth, MAX_PHONE_WIDTH) * 0.4; // 40% of screen width
 const MINI_PLAYER_HEIGHT = (MINI_PLAYER_WIDTH * 9) / 16; // 16:9 aspect ratio
 
 export function GlobalMiniPlayer() {
-  const { activeVideo, close, expand, isPlaying } = useVideoOverlay();
-  const router = useRouter();
+  const { activeVideo } = useVideoOverlay();
+  if (!activeVideo) return null;
 
-  const player = useVideoPlayer(activeVideo?.videoUri ?? null, (newPlayer) => {
-    if (activeVideo) {
-      newPlayer.loop = !!activeVideo.isLive;
-      if (activeVideo.currentTime) {
-        newPlayer.currentTime = activeVideo.currentTime;
-      }
-      newPlayer.play();
-    }
-  });
+  return <MiniPlayerContent activeVideo={activeVideo} />;
+}
+
+function MiniPlayerContent({ activeVideo }: { activeVideo: NonNullable<ReturnType<typeof useVideoOverlay>["activeVideo"]> }) {
+  const { close, expand, isPlaying } = useVideoOverlay();
+  const router = useRouter();
+  const videoRef = useRef<Video>(null);
+
+  usePlaybackKeepAwake(Boolean(activeVideo.videoUri) && isPlaying);
 
   useEffect(() => {
-    if (isPlaying && activeVideo) {
-      player.play();
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      videoRef.current.playAsync().catch(() => {
+        // no-op
+      });
     } else {
-      player.pause();
+      videoRef.current.pauseAsync().catch(() => {
+        // no-op
+      });
     }
-  }, [isPlaying, player, activeVideo]);
-
-  if (!activeVideo) return null;
+  }, [isPlaying]);
 
   const handlePress = () => {
     // Navigate back to the original route or the video screen
@@ -61,7 +67,9 @@ export function GlobalMiniPlayer() {
   };
 
   const handleClose = () => {
-    player.pause();
+    videoRef.current?.pauseAsync().catch(() => {
+      // no-op
+    });
     close();
   };
 
@@ -74,14 +82,24 @@ export function GlobalMiniPlayer() {
       >
         {/* Helper view to clip content */}
         <View style={styles.videoContainer}>
-          <VideoView
-            key={activeVideo?.videoUri ?? "miniplayer"}
-            player={player}
+          <Video
+            ref={videoRef}
+            source={{ uri: activeVideo.videoUri }}
             style={styles.video}
-            contentFit="cover"
-            nativeControls={false}
-            allowsFullscreen={false}
-            allowsPictureInPicture={false} // Native PiP handled by main player usually
+            resizeMode={ResizeMode.COVER}
+            shouldPlay={isPlaying}
+            isLooping={!!activeVideo.isLive}
+            useNativeControls={false}
+            onLoad={(status: AVPlaybackStatus) => {
+              if (!status.isLoaded) return;
+              if (activeVideo.currentTime && activeVideo.currentTime > 0) {
+                videoRef.current
+                  ?.setPositionAsync(Math.floor(activeVideo.currentTime * 1000))
+                  .catch(() => {
+                    // no-op
+                  });
+              }
+            }}
           />
         </View>
 

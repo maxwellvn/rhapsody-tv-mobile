@@ -43,7 +43,7 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#E5E5E5',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: spacing.xl,
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   tab: {
     paddingVertical: hp(12),

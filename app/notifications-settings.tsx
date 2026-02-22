@@ -1,3 +1,4 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { SettingsItemToggle } from "@/components/settings/settings-item-toggle";
 import { SettingsSection } from "@/components/settings/settings-section";
 import {
@@ -94,7 +95,7 @@ export default function NotificationsSettingsScreen() {
         >
           {(isLoading || isUpdating) && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#000" />
+              <AppSpinner size="small" color="#000" />
             </View>
           )}
 

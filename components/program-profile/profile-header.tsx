@@ -1,7 +1,8 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { Button } from '@/components/button';
 import { FONTS } from '@/styles/global';
 import { borderRadius, fs, hp, spacing, wp } from '@/utils/responsive';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 
 type ProgramProfileHeaderProps = {
   bannerImage: any;
@@ -10,6 +11,9 @@ type ProgramProfileHeaderProps = {
   subscriberCount: string;
   videoCount: string;
   description: string;
+  isSubscribed?: boolean;
+  isSubscribing?: boolean;
+  subscribeDisabled?: boolean;
   onSubscribe?: () => void;
 };
 
@@ -20,6 +24,9 @@ export function ProgramProfileHeader({
   subscriberCount,
   videoCount,
   description,
+  isSubscribed = false,
+  isSubscribing = false,
+  subscribeDisabled = false,
   onSubscribe,
 }: ProgramProfileHeaderProps) {
   return (
@@ -59,10 +66,24 @@ export function ProgramProfileHeader({
         {/* Subscribe Button */}
         <Button 
           onPress={onSubscribe}
-          style={styles.subscribeButton}
-          textStyle={styles.subscribeButtonText}
+          disabled={subscribeDisabled || isSubscribing}
+          style={[
+            styles.subscribeButton,
+            isSubscribed && styles.subscribedButton,
+            (subscribeDisabled || isSubscribing) && styles.subscribeButtonDisabled,
+          ]}
+          textStyle={[
+            styles.subscribeButtonText,
+            isSubscribed && styles.subscribedButtonText,
+          ]}
         >
-          Subscribe
+          {isSubscribing ? (
+            <AppSpinner size="small" color={isSubscribed ? "#737373" : "#FFFFFF"} />
+          ) : isSubscribed ? (
+            "Subscribed"
+          ) : (
+            "Subscribe"
+          )}
         </Button>
       </View>
     </View>
@@ -130,10 +151,21 @@ const styles = StyleSheet.create({
     paddingVertical: hp(12),
     marginBottom: hp(24),
   },
+  subscribeButtonDisabled: {
+    opacity: 0.6,
+  },
+  subscribedButton: {
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
   subscribeButtonText: {
     fontSize: fs(16),
     fontFamily: FONTS.semibold,
     color: '#FFFFFF',
     textAlign: 'center',
+  },
+  subscribedButtonText: {
+    color: "#737373",
   },
 });

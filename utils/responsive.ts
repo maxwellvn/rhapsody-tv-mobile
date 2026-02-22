@@ -1,6 +1,11 @@
 import { Dimensions, PixelRatio, Platform } from 'react-native';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: RAW_SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Cap effective width to the largest standard phone width (iPhone 16 Pro Max).
+// This prevents foldable inner screens from inflating the UI.
+export const MAX_PHONE_WIDTH = 430;
+const SCREEN_WIDTH = Math.min(RAW_SCREEN_WIDTH, MAX_PHONE_WIDTH);
 
 // Base dimensions (design is based on iPhone 14 Pro: 393 x 852)
 const BASE_WIDTH = 393;
@@ -40,12 +45,20 @@ export const fs = (size: number): number => {
  */
 export const dimensions = {
   width: SCREEN_WIDTH,
+  rawWidth: RAW_SCREEN_WIDTH,
   height: SCREEN_HEIGHT,
   isSmallDevice: SCREEN_WIDTH < 375,
   isMediumDevice: SCREEN_WIDTH >= 375 && SCREEN_WIDTH < 414,
   isLargeDevice: SCREEN_WIDTH >= 414,
-  isTablet: SCREEN_WIDTH >= 768,
+  isTablet: RAW_SCREEN_WIDTH >= 768,
+  isFoldableInner: RAW_SCREEN_WIDTH > MAX_PHONE_WIDTH,
 };
+
+/**
+ * Caps a dynamic width (e.g. from useWindowDimensions) to phone-like max.
+ */
+export const clampWidth = (width: number): number =>
+  Math.min(width, MAX_PHONE_WIDTH);
 
 /**
  * Platform specific values

@@ -60,11 +60,12 @@ class VodService {
     videoId: string,
     page: number = 1,
     limit: number = 20,
+    sort: 'newest' | 'top' = 'newest',
   ): Promise<ApiResponse<VodPaginatedCommentsResponseDto>> {
     return api.get<VodPaginatedCommentsResponseDto>(
       API_ENDPOINTS.VOD.COMMENTS(videoId),
       {
-        params: { page, limit },
+        params: { page, limit, sort },
       },
     );
   }
@@ -76,9 +77,12 @@ class VodService {
     videoId: string,
     data: CreateCommentDto,
   ): Promise<ApiResponse<VodCommentResponseDto>> {
+    const payload = {
+      message: data.message ?? data.content ?? "",
+    };
     return api.post<VodCommentResponseDto>(
       API_ENDPOINTS.VOD.COMMENTS(videoId),
-      data,
+      payload,
     );
   }
 
@@ -90,9 +94,12 @@ class VodService {
     commentId: string,
     data: CreateCommentDto,
   ): Promise<ApiResponse<VodCommentResponseDto>> {
+    const payload = {
+      message: data.message ?? data.content ?? "",
+    };
     return api.post<VodCommentResponseDto>(
       API_ENDPOINTS.VOD.COMMENT_REPLY(videoId, commentId),
-      data,
+      payload,
     );
   }
 
@@ -106,8 +113,10 @@ class VodService {
   /**
    * Toggle like on a comment (like/unlike)
    */
-  async toggleCommentLike(commentId: string): Promise<ApiResponse<void>> {
-    return api.post<void>(API_ENDPOINTS.VOD.COMMENT_LIKE(commentId));
+  async toggleCommentLike(
+    commentId: string,
+  ): Promise<ApiResponse<{ liked: boolean }>> {
+    return api.post<{ liked: boolean }>(API_ENDPOINTS.VOD.COMMENT_LIKE(commentId));
   }
 
   /**
@@ -115,8 +124,8 @@ class VodService {
    */
   async getCommentLikeStatus(
     commentId: string,
-  ): Promise<ApiResponse<{ isLiked: boolean }>> {
-    return api.get<{ isLiked: boolean }>(
+  ): Promise<ApiResponse<{ isLiked?: boolean; liked?: boolean }>> {
+    return api.get<{ isLiked?: boolean; liked?: boolean }>(
       API_ENDPOINTS.VOD.COMMENT_LIKE_STATUS(commentId),
     );
   }

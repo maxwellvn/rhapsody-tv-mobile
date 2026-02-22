@@ -1,5 +1,6 @@
 import { FONTS } from '@/styles/global';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabName = 'Home' | 'Discover' | 'Schedule' | 'Profile';
 
@@ -9,6 +10,9 @@ type BottomNavProps = {
 };
 
 export function BottomNav({ activeTab = 'Home', onTabPress }: BottomNavProps) {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Platform.OS === "ios" ? Math.max(insets.bottom, 0) : 0;
+
   const handleTabPress = (tab: TabName) => {
     if (onTabPress) {
       onTabPress(tab);
@@ -16,115 +20,120 @@ export function BottomNav({ activeTab = 'Home', onTabPress }: BottomNavProps) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Home Tab */}
-      <Pressable 
-        style={styles.tab} 
-        onPress={() => handleTabPress('Home')}
-      >
-        <View style={[
-          styles.iconContainer,
-          activeTab === 'Home' ? styles.activeIconContainer : styles.inactiveIconContainer
-        ]}>
-          <Image
-            source={require('@/assets/Icons/Home.png')}
-            style={[
-              styles.icon,
-              { tintColor: activeTab === 'Home' ? '#FFFFFF' : '#6B7280' }
-            ]}
-            resizeMode="contain"
-          />
-        </View>
-        <Text style={[
-          styles.label,
-          activeTab === 'Home' && styles.activeLabel
-        ]}>
-          Home
-        </Text>
-      </Pressable>
+    <View style={[styles.safeAreaBackground, { paddingBottom: bottomInset }]}>
+      <View style={styles.container}>
+        {/* Home Tab */}
+        <Pressable 
+          style={styles.tab} 
+          onPress={() => handleTabPress('Home')}
+        >
+          <View style={[
+            styles.iconContainer,
+            activeTab === 'Home' ? styles.activeIconContainer : styles.inactiveIconContainer
+          ]}>
+            <Image
+              source={require('@/assets/Icons/Home.png')}
+              style={[
+                styles.icon,
+                { tintColor: activeTab === 'Home' ? '#FFFFFF' : '#6B7280' }
+              ]}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={[
+            styles.label,
+            activeTab === 'Home' && styles.activeLabel
+          ]}>
+            Home
+          </Text>
+        </Pressable>
 
-      {/* Discover Tab */}
-      <Pressable 
-        style={styles.tab} 
-        onPress={() => handleTabPress('Discover')}
-      >
-        <View style={[
-          styles.iconContainer,
-          activeTab === 'Discover' ? styles.activeIconContainer : styles.inactiveIconContainer
-        ]}>
-          <Image
-            source={require('@/assets/Icons/Discover.png')}
-            style={[
-              styles.icon,
-              { tintColor: activeTab === 'Discover' ? '#FFFFFF' : '#6B7280' }
-            ]}
-            resizeMode="contain"
-          />
-        </View>
-        <Text style={[
-          styles.label,
-          activeTab === 'Discover' && styles.activeLabel
-        ]}>
-          Discover
-        </Text>
-      </Pressable>
+        {/* Discover Tab */}
+        <Pressable 
+          style={styles.tab} 
+          onPress={() => handleTabPress('Discover')}
+        >
+          <View style={[
+            styles.iconContainer,
+            activeTab === 'Discover' ? styles.activeIconContainer : styles.inactiveIconContainer
+          ]}>
+            <Image
+              source={require('@/assets/Icons/Discover.png')}
+              style={[
+                styles.icon,
+                { tintColor: activeTab === 'Discover' ? '#FFFFFF' : '#6B7280' }
+              ]}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={[
+            styles.label,
+            activeTab === 'Discover' && styles.activeLabel
+          ]}>
+            Discover
+          </Text>
+        </Pressable>
 
-      {/* Schedule Tab */}
-      <Pressable 
-        style={styles.tab} 
-        onPress={() => handleTabPress('Schedule')}
-      >
-        <View style={[
-          styles.iconContainer,
-          activeTab === 'Schedule' ? styles.activeIconContainer : styles.inactiveIconContainer
-        ]}>
-          <Image
-            source={require('@/assets/Icons/Schedule.png')}
-            style={[
-              styles.icon,
-              { tintColor: activeTab === 'Schedule' ? '#FFFFFF' : '#6B7280' }
-            ]}
-            resizeMode="contain"
-          />
-        </View>
-        <Text style={[
-          styles.label,
-          activeTab === 'Schedule' && styles.activeLabel
-        ]}>
-          Schedule
-        </Text>
-      </Pressable>
+        {/* Schedule Tab */}
+        <Pressable 
+          style={styles.tab} 
+          onPress={() => handleTabPress('Schedule')}
+        >
+          <View style={[
+            styles.iconContainer,
+            activeTab === 'Schedule' ? styles.activeIconContainer : styles.inactiveIconContainer
+          ]}>
+            <Image
+              source={require('@/assets/Icons/Schedule.png')}
+              style={[
+                styles.icon,
+                { tintColor: activeTab === 'Schedule' ? '#FFFFFF' : '#6B7280' }
+              ]}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={[
+            styles.label,
+            activeTab === 'Schedule' && styles.activeLabel
+          ]}>
+            Schedule
+          </Text>
+        </Pressable>
 
-      {/* Profile Tab */}
-      <Pressable 
-        style={styles.tab} 
-        onPress={() => handleTabPress('Profile')}
-      >
-        <View style={[
-          styles.iconContainer,
-          activeTab === 'Profile' ? styles.activeIconContainer : styles.inactiveIconContainer
-        ]}>
-          <Image
-            source={require('@/assets/Icons/Profile.png')}
-            style={[
-              styles.icon,
-              { tintColor: activeTab === 'Profile' ? '#FFFFFF' : '#6B7280' }
-            ]}
-            resizeMode="contain"
-          />
-        </View>
-        <Text style={[
-          styles.label,
-          activeTab === 'Profile' && styles.activeLabel
-        ]}>
-          Profile
-        </Text>
-      </Pressable>
+        {/* Profile Tab */}
+        <Pressable 
+          style={styles.tab} 
+          onPress={() => handleTabPress('Profile')}
+        >
+          <View style={[
+            styles.iconContainer,
+            activeTab === 'Profile' ? styles.activeIconContainer : styles.inactiveIconContainer
+          ]}>
+            <Image
+              source={require('@/assets/Icons/Profile.png')}
+              style={[
+                styles.icon,
+                { tintColor: activeTab === 'Profile' ? '#FFFFFF' : '#6B7280' }
+              ]}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={[
+            styles.label,
+            activeTab === 'Profile' && styles.activeLabel
+          ]}>
+            Profile
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  safeAreaBackground: {
+    backgroundColor: '#0B1220',
+  },
   container: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -132,7 +141,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E5E5',
     paddingVertical: 8,
     paddingHorizontal: 8,
-    paddingBottom: 8,
   },
   tab: {
     flex: 1,

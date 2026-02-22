@@ -1,6 +1,11 @@
 import { FONTS } from "@/styles/global";
 import { borderRadius, fs, hp, wp } from "@/utils/responsive";
+import {
+  getCardDimensions,
+  VIDEO_MEDIA_ASPECT_RATIO,
+} from "@/utils/card-dimensions";
 import { Ionicons } from "@expo/vector-icons";
+import { useMemo } from "react";
 import {
     GestureResponderEvent,
     Image,
@@ -8,6 +13,7 @@ import {
     Pressable,
     StyleSheet,
     Text,
+    useWindowDimensions,
     View,
 } from "react-native";
 import { Badge } from "../badge";
@@ -18,6 +24,7 @@ type ProfileVideoCardProps = {
   badgeLabel?: string;
   badgeColor?: string;
   showBadge?: boolean;
+  fitToContainer?: boolean;
   onPress?: () => void;
   onRemovePress?: () => void;
 };
@@ -28,16 +35,33 @@ export function ProfileVideoCard({
   badgeLabel,
   badgeColor,
   showBadge = false,
+  fitToContainer = false,
   onPress,
   onRemovePress,
 }: ProfileVideoCardProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const cardDimensions = useMemo(
+    () => getCardDimensions(windowWidth),
+    [windowWidth],
+  );
+
   const handleRemovePress = (event: GestureResponderEvent) => {
     event.stopPropagation?.();
     onRemovePress?.();
   };
 
   return (
-    <Pressable style={styles.container} onPress={onPress}>
+    <Pressable
+      style={[
+        styles.container,
+        !fitToContainer && {
+          width: cardDimensions.compactVideoCardWidth,
+          marginRight: cardDimensions.compactVideoCardGap,
+        },
+        fitToContainer && styles.fitContainer,
+      ]}
+      onPress={onPress}
+    >
       <View style={styles.imageContainer}>
         <Image source={imageSource} style={styles.image} resizeMode="cover" />
         {onRemovePress && (
@@ -64,13 +88,20 @@ export function ProfileVideoCard({
 
 const styles = StyleSheet.create({
   container: {
-    width: wp(160),
-    marginRight: wp(12),
+    shadowColor: "#94A3B8",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  fitContainer: {
+    width: "100%",
+    marginRight: 0,
   },
   imageContainer: {
     position: "relative",
     width: "100%",
-    height: hp(90),
+    aspectRatio: VIDEO_MEDIA_ASPECT_RATIO,
     borderRadius: borderRadius.md,
     overflow: "hidden",
     backgroundColor: "#E5E5E5",

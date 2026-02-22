@@ -1,3 +1,4 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { Button } from "@/components/button";
 import {
   useChannelSubscriptionStatus,
@@ -88,7 +89,7 @@ export function ChannelProfileHeader({ channel }: ChannelProfileHeaderProps) {
           disabled={isSubscribing}
         >
           {isSubscribing ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <AppSpinner size="small" color="#FFFFFF" />
           ) : isSubscribed ? (
             "Subscribed"
           ) : (

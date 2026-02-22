@@ -1,6 +1,6 @@
 import { Button } from '@/components/button';
 import { styles } from '@/styles/onboarding.styles';
-import { wp } from '@/utils/responsive';
+import { wp, MAX_PHONE_WIDTH } from '@/utils/responsive';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
@@ -24,7 +24,8 @@ const AUTO_SCROLL_INTERVAL = 3000; // 3 seconds
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: rawScreenWidth } = useWindowDimensions();
+  const screenWidth = Math.min(rawScreenWidth, MAX_PHONE_WIDTH);
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentIndexRef = useRef(0);

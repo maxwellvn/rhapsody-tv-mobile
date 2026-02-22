@@ -1,4 +1,5 @@
 import { AuthResponse, User } from "@/types/api.types";
+import { userService } from "@/services/user.service";
 import { storage } from "@/utils/storage";
 import React, {
   createContext,
@@ -42,7 +43,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       ]);
 
       if (token && userData) {
-        setUser(userData);
+        // Validate token against the backend by fetching fresh profile
+        try {
+          const response = await userService.getProfile();
+          // Token valid — use fresh profile data from server
+          const freshUser = response.data;
+          setUser(freshUser);
+          await storage.saveUserData(freshUser);
+        } catch (profileError: any) {
+          const status = profileError?.statusCode ?? profileError?.status;
+          if (status === 401 || status === 403 || status === 404) {
+            // Token invalid or user not found — clear auth, send to login
+            await Promise.all([storage.clearTokens(), storage.clearUserData()]);
+            setUser(null);
+          } else {
+            // Network error or server down — use cached data so offline still works
+            setUser(userData);
+          }
+        }
       }
     } catch (error) {
       console.error("Error checking auth status:", error);

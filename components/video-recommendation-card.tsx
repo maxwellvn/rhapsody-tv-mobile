@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { VIDEO_MEDIA_ASPECT_RATIO } from '@/utils/card-dimensions';
 import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Badge } from './badge';
 
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
   thumbnailContainer: {
     position: 'relative',
     width: '100%',
-    height: 200,
+    aspectRatio: VIDEO_MEDIA_ASPECT_RATIO,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 8,

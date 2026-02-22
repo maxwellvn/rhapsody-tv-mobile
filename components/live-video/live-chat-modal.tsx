@@ -1,10 +1,10 @@
+import { UserAvatar } from "@/components/user-avatar";
+import { useAuth } from "@/context/AuthContext";
 import { SocketComment } from "@/hooks/useLivestreamSocket";
 import { styles } from "@/styles/live-chat-modal.styles";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Image,
   Keyboard,
   Platform,
   Pressable,
@@ -13,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type LiveChatModalProps = {
   onClose: () => void;
@@ -27,42 +28,32 @@ export function LiveChatModal({
   comments,
   onSendMessage,
 }: LiveChatModalProps) {
+  const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [message, setMessage] = useState("");
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
-  const keyboardHeight = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const keyboardShowEvent =
+    const showEvent =
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const keyboardHideEvent =
+    const hideEvent =
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
-    const showSubscription = Keyboard.addListener(keyboardShowEvent, (e) => {
-      Animated.timing(keyboardHeight, {
-        toValue: e.endCoordinates.height,
-        duration: Platform.OS === "ios" ? e.duration : 250,
-        useNativeDriver: false,
-      }).start();
-      // Scroll to bottom when keyboard shows
-      setTimeout(
-        () => scrollViewRef.current?.scrollToEnd({ animated: true }),
-        100,
-      );
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardOffset(e.endCoordinates?.height ?? 0);
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 60);
     });
 
-    const hideSubscription = Keyboard.addListener(keyboardHideEvent, (e) => {
-      Animated.timing(keyboardHeight, {
-        toValue: 0,
-        duration: Platform.OS === "ios" ? e.duration : 250,
-        useNativeDriver: false,
-      }).start();
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOffset(0);
     });
 
     return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
+      showSub.remove();
+      hideSub.remove();
     };
-  }, [keyboardHeight]);
+  }, []);
 
   const handleSend = () => {
     if (message.trim()) {
@@ -77,7 +68,6 @@ export function LiveChatModal({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>Live Chat</Text>
@@ -91,22 +81,32 @@ export function LiveChatModal({
         </View>
       </View>
 
-      {/* Chat Messages */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
-        contentContainerStyle={styles.messagesContent}
+        contentContainerStyle={[styles.messagesContent, { paddingBottom: 12 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={scrollToBottom}
       >
         {comments.map((msg) => (
           <View key={msg.id} style={styles.messageItem}>
-            <Image
-              source={require("@/assets/images/Avatar.png")}
+            {(() => {
+              const isCurrentUser = !!user?.id && msg.user.id === user.id;
+              return (
+            <UserAvatar
+              avatarKey={isCurrentUser ? user?.avatar : msg.user.avatar}
+              gender={isCurrentUser ? user?.gender : msg.user.gender}
+              seed={
+                isCurrentUser
+                  ? user?.id || user?.fullName || user?.username || "current-user"
+                  : msg.user.id || msg.user.fullName || "live-chat-user"
+              }
+              size={40}
               style={styles.messageAvatar}
-              resizeMode="contain"
             />
+              );
+            })()}
             <View style={styles.messageContent}>
               <Text style={styles.messageUsername}>
                 {msg.user.fullName || `@${msg.user.id}`}
@@ -117,14 +117,21 @@ export function LiveChatModal({
         ))}
       </ScrollView>
 
-      {/* Input Area */}
-      <Animated.View
-        style={[styles.inputArea, { marginBottom: keyboardHeight }]}
+      <View
+        style={[
+          styles.inputArea,
+          {
+            marginBottom: keyboardOffset,
+            paddingBottom: 12 + insets.bottom,
+          },
+        ]}
       >
-        <Image
-          source={require("@/assets/images/Avatar.png")}
+        <UserAvatar
+          avatarKey={user?.avatar}
+          gender={user?.gender}
+          seed={user?.id || user?.fullName || user?.username || "current-user"}
+          size={40}
           style={styles.inputAvatar}
-          resizeMode="contain"
         />
         <View style={styles.inputContainer}>
           <TextInput
@@ -140,7 +147,7 @@ export function LiveChatModal({
             <Ionicons name="send" size={20} color="#0000FF" />
           </Pressable>
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 }

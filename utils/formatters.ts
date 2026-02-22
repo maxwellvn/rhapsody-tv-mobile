@@ -23,7 +23,8 @@ export const formatNumber = (num: number): string => {
  * Handles optional seconds parameter
  */
 export const formatDuration = (seconds?: number): string => {
-  if (seconds === undefined || seconds === null) return "--:--";
+  if (seconds === undefined || seconds === null || Number.isNaN(seconds))
+    return "0:00";
 
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);

@@ -1,7 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { FONTS } from '@/styles/global';
 import { borderRadius, fs, hp, wp } from '@/utils/responsive';
-import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { getCardDimensions, VIDEO_MEDIA_ASPECT_RATIO } from '@/utils/card-dimensions';
+import { useMemo } from 'react';
+import {
+  Image,
+  ImageSourcePropType,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 type HorizontalVideoCardProps = {
   thumbnailSource: ImageSourcePropType;
@@ -24,10 +34,21 @@ export function HorizontalVideoCard({
   onPress,
   onMenuPress,
 }: HorizontalVideoCardProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const cardDimensions = useMemo(
+    () => getCardDimensions(windowWidth),
+    [windowWidth],
+  );
+
   return (
     <Pressable onPress={onPress} style={styles.container}>
       {/* Thumbnail */}
-      <View style={styles.thumbnailContainer}>
+      <View
+        style={[
+          styles.thumbnailContainer,
+          { width: cardDimensions.horizontalVideoThumbWidth },
+        ]}
+      >
         <Image
           source={thumbnailSource}
           style={styles.thumbnail}
@@ -69,8 +90,7 @@ const styles = StyleSheet.create({
   },
   thumbnailContainer: {
     position: 'relative',
-    width: wp(168),
-    height: hp(94),
+    aspectRatio: VIDEO_MEDIA_ASPECT_RATIO,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     backgroundColor: '#F5F5F5',

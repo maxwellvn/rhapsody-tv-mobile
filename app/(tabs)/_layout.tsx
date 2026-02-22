@@ -1,6 +1,22 @@
-import { Tabs } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
+import { Redirect, Tabs } from 'expo-router';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 export default function TabLayout() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#1D4ED8" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/signin" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -28,3 +44,12 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

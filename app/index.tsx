@@ -1,13 +1,9 @@
 import { useAuth } from "@/context/AuthContext";
 import { hp, wp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
-
-// Keep the native splash screen visible while we load
-SplashScreen.preventAutoHideAsync();
 
 export default function CustomSplashScreen() {
   const router = useRouter();
@@ -15,14 +11,10 @@ export default function CustomSplashScreen() {
   const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
-    const checkAuthAndRedirect = async () => {
+    const checkAuthAndRedirect = () => {
       // Wait for auth loading to complete
       if (authLoading) return;
 
-      // Hide native splash screen
-      await SplashScreen.hideAsync();
-
-      // Small delay to ensure splash is hidden
       setTimeout(() => {
         if (isAuthenticated) {
           router.replace("/(tabs)");

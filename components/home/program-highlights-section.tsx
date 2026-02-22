@@ -24,53 +24,21 @@ export function ProgramHighlightsSection() {
     router.push("/(tabs)/discover");
   };
 
-  // Mock data for fallback
-  const mockData = [
-    {
-      id: "mock-1",
-      videoId: "mock-video-1",
-      title: "Your Loveworld Special with Pastor Chris Season 2 Phase 5",
-      thumbnailUrl: require("@/assets/images/carusel-2.png"),
-      badgeLabel: "Series",
-      badgeColor: "#2563EB",
-    },
-    {
-      id: "mock-2",
-      videoId: "mock-video-2",
-      title: "Night Of A Thousand Crusades HIGHLIGHT 3",
-      thumbnailUrl: require("@/assets/images/Image-2.png"),
-      badgeLabel: "New",
-      badgeColor: "#2563EB",
-    },
-    {
-      id: "mock-3",
-      videoId: "mock-video-3",
-      title: "Your Loveworld Special with Pastor Chris Season 2 Phase 5",
-      thumbnailUrl: require("@/assets/images/carusel-2.png"),
-      badgeLabel: "Live",
-      badgeColor: "#DC2626",
-    },
-  ];
-
   // Show loading state with skeleton
   if (isLoading) {
     return <ProgramHighlightsSkeleton />;
   }
 
-  // Show mock data if no highlights data available
-  const displayData =
-    highlightsData.length > 0
-      ? highlightsData.map((highlight) => ({
-        id: highlight.id,
-        videoId: highlight.id,
-        title: highlight.title,
-        thumbnailUrl: highlight.thumbnailUrl
-          ? ({ uri: highlight.thumbnailUrl } as ImageSourcePropType)
-          : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
-        badgeLabel: "Series",
-        badgeColor: "#2563EB",
-      }))
-      : mockData;
+  const displayData = highlightsData.map((highlight) => ({
+    id: highlight.id,
+    videoId: highlight.id,
+    title: highlight.title,
+    thumbnailUrl: highlight.thumbnailUrl
+      ? ({ uri: highlight.thumbnailUrl } as ImageSourcePropType)
+      : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
+    badgeLabel: "Series",
+    badgeColor: "#2563EB",
+  }));
 
   return (
     <View style={styles.container}>
@@ -86,24 +54,28 @@ export function ProgramHighlightsSection() {
       )}
 
       {/* Videos Scroll */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        style={styles.scrollView}
-      >
-        {displayData.map((highlight) => (
-          <VideoCard
-            key={highlight.id}
-            imageSource={highlight.thumbnailUrl}
-            title={highlight.title}
-            badgeLabel={highlight.badgeLabel}
-            badgeColor={highlight.badgeColor}
-            showBadge={true}
-            onPress={() => handleCardPress(highlight.videoId)}
-          />
-        ))}
-      </ScrollView>
+      {displayData.length > 0 && (
+        <View style={styles.scrollContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            style={styles.scrollView}
+          >
+            {displayData.map((highlight) => (
+              <VideoCard
+                key={highlight.id}
+                imageSource={highlight.thumbnailUrl}
+                title={highlight.title}
+                badgeLabel={highlight.badgeLabel}
+                badgeColor={highlight.badgeColor}
+                showBadge={true}
+                onPress={() => handleCardPress(highlight.videoId)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 }
@@ -118,27 +90,33 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: spacing.md,
+    paddingHorizontal: spacing.xl,
   },
   title: {
     fontSize: dimensions.isTablet ? fs(24) : fs(20),
     fontFamily: FONTS.bold,
-    color: "#000000",
+    color: "#0F172A",
   },
   seeAllText: {
-    fontSize: dimensions.isTablet ? fs(16) : fs(14),
-    fontFamily: FONTS.medium,
-    color: "#666666",
+    fontSize: dimensions.isTablet ? fs(14) : fs(13),
+    fontFamily: FONTS.semibold,
+    color: "#475569",
   },
   scrollView: {
     marginLeft: 0,
   },
+  scrollContainer: {
+    position: "relative",
+  },
   scrollContent: {
-    paddingRight: 0,
+    paddingLeft: spacing.xl,
+    paddingRight: spacing.xl,
   },
   noDataText: {
     fontSize: dimensions.isTablet ? fs(16) : fs(14),
     fontFamily: FONTS.regular,
-    color: "#666666",
+    color: "#94A3B8",
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
 });

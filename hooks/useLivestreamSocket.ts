@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export interface SocketUser {
   id: string;
   fullName: string;
+  avatar?: string;
+  gender?: "male" | "female";
 }
 
 export interface SocketComment {
@@ -33,12 +35,22 @@ export const useLivestreamSocket = (livestreamId?: string) => {
 
     const initSocket = async () => {
       const socket = await socketService.connect();
+      if (!socket) {
+        setIsConnected(false);
+        setError("Please sign in to use live chat");
+        return;
+      }
 
       socket.on("connect", () => {
         setIsConnected(true);
         setError(null);
         // Join the room once connected
         socket.emit("joinLivestream", { livestreamId });
+      });
+
+      socket.on("connect_error", (err: Error) => {
+        setIsConnected(false);
+        setError(err.message || "Unable to connect to livestream chat");
       });
 
       socket.on("disconnect", () => {
@@ -98,6 +110,7 @@ export const useLivestreamSocket = (livestreamId?: string) => {
       }
       socketService.off("connect");
       socketService.off("disconnect");
+      socketService.off("connect_error");
       socketService.off("newComment");
       socketService.off("commentHistory");
       socketService.off("commentDeleted");

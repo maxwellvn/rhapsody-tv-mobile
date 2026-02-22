@@ -11,10 +11,11 @@ import { styles } from "@/styles/notifications.styles";
 import { NotificationDto } from "@/types/api.types";
 import { formatRelativeTime } from "@/utils/formatters";
 import { Href, router, Stack } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
     Alert,
     Pressable,
+    RefreshControl,
     ScrollView,
     StatusBar,
     Text,
@@ -29,6 +30,7 @@ export default function NotificationsScreen() {
   );
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const {
     data: notificationsData,
     isLoading,
@@ -36,6 +38,15 @@ export default function NotificationsScreen() {
     error,
     refetch,
   } = useNotifications(1, 20);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
   const { mutateAsync: markRead, isPending: isMarkingRead } =
     useMarkNotificationRead();
   const { mutateAsync: deleteNotification, isPending: isDeletingNotification } =
@@ -331,6 +342,9 @@ export default function NotificationsScreen() {
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
         >
           {filteredNotifications.length === 0 ? (
             <View style={styles.emptyState}>

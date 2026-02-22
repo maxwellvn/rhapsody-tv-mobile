@@ -5,8 +5,7 @@
 
 export const API_CONFIG = {
   // Backend API base URL
-  // BASE_URL: "http://localhost:3000/v1", // Use for web or iOS Simulator
-  // BASE_URL: "http://192.168.0.84:3000/v1", // Use your machine's IP for physical devices/Android emulator
+  // BASE_URL: "http://localhost:3000/v1", // Use for local backend
   BASE_URL: "https://rtv.movortech.com/v1",
 
   // Timeout duration in milliseconds
@@ -73,6 +72,7 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: {
     LIST: "/notifications",
     READ: (id: string) => `/notifications/${id}/read`,
+    DELETE: (id: string) => `/notifications/${id}`,
     READ_ALL: "/notifications/read-all",
   },
 
@@ -92,9 +92,18 @@ export const API_ENDPOINTS = {
     DETAILS: (slug: string) => `/channels/${slug}`,
     VIDEOS: (slug: string) => `/channels/${slug}/videos`,
     SCHEDULE: (slug: string) => `/channels/${slug}/schedule`,
+    LIVESTREAMS: (slug: string) => `/channels/${slug}/livestreams`,
     SUBSCRIBE: (id: string) => `/channels/${id}/subscribe`,
     UNSUBSCRIBE: (id: string) => `/channels/${id}/unsubscribe`,
     SUBSCRIPTIONS: "/channels/subscriptions",
+  },
+
+  // Programs
+  PROGRAMS: {
+    SUBSCRIBE: (programId: string) => `/programs/${programId}/subscribe`,
+    UNSUBSCRIBE: (programId: string) => `/programs/${programId}/unsubscribe`,
+    SUBSCRIPTION_STATUS: (programId: string) =>
+      `/programs/${programId}/subscription-status`,
   },
 
   // Playlists
@@ -138,8 +147,11 @@ export const API_ENDPOINTS = {
 
   // Homepage
   HOMEPAGE: {
+    SEARCH: "/homepage/search",
     LIVE_NOW: "/homepage/live-now",
+    LIVE_STREAMS: "/homepage/livestreams",
     CONTINUE_WATCHING: "/homepage/continue-watching",
+    UPDATE_PROGRESS: "/homepage/update-progress",
     CHANNELS: "/homepage/channels",
     PROGRAMS: "/homepage/programs",
     FEATURED_VIDEOS: "/homepage/featured-videos",

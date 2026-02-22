@@ -1,4 +1,5 @@
 import { KingsChatTokens } from "@/types/api.types";
+import { API_CONFIG } from "@/config/api.config";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
@@ -20,30 +21,56 @@ export class KingsChatAuthError extends Error {
 }
 
 class KingsChatService {
-  private getOauthUrl(redirectUri: string) {
+  private getCallbackBaseUrl(): string {
+    const trimmed = API_CONFIG.BASE_URL.replace(/\/+$/, "");
+    return trimmed.endsWith("/v1") ? trimmed : `${trimmed}/v1`;
+  }
+
+  private getOauthUrl(appRedirectUri: string) {
     const extra = Constants.expoConfig?.extra as
       | {
           kingschatOauthUrl?: string;
+          kingschatAuthBaseUrl?: string;
+          kingschatClientId?: string;
           kingschat?: { oauthUrl?: string };
         }
       | undefined;
 
-    const baseOauthUrl =
+    const directOauthUrl =
       extra?.kingschatOauthUrl ?? extra?.kingschat?.oauthUrl ?? "";
+    const isKnownInvalidDirectUrl = directOauthUrl.includes(
+      "connect.kingsch.at/oauth/authorize",
+    );
 
-    if (!baseOauthUrl) {
-      throw new KingsChatAuthError(
-        "CONFIG_MISSING",
-        "KingsChat OAuth URL is not configured",
-      );
+    if (directOauthUrl && !isKnownInvalidDirectUrl) {
+      if (directOauthUrl.includes("redirect_uri=")) {
+        return directOauthUrl;
+      }
+
+      const separator = directOauthUrl.includes("?") ? "&" : "?";
+      return `${directOauthUrl}${separator}redirect_uri=${encodeURIComponent(appRedirectUri)}`;
     }
 
-    if (baseOauthUrl.includes("redirect_uri=")) {
-      return baseOauthUrl;
+    const authBaseUrl =
+      extra?.kingschatAuthBaseUrl ?? "https://accounts.kingsch.at";
+    const clientId = extra?.kingschatClientId ?? "com.kingschat";
+    const callbackBase = this.getCallbackBaseUrl();
+    const callbackUrl = `${callbackBase}/auth/kingschat/callback?app_redirect=${encodeURIComponent(appRedirectUri)}`;
+    const scopes = JSON.stringify(["kingschat", "profile"]);
+
+    if (!authBaseUrl || !clientId) {
+      throw new KingsChatAuthError("CONFIG_MISSING", "KingsChat config missing");
     }
 
-    const separator = baseOauthUrl.includes("?") ? "&" : "?";
-    return `${baseOauthUrl}${separator}redirect_uri=${encodeURIComponent(redirectUri)}`;
+    const params = new URLSearchParams({
+      client_id: clientId,
+      scopes,
+      redirect_uri: callbackUrl,
+      response_type: "token",
+      post_redirect: "true",
+    });
+
+    return `${authBaseUrl}?${params.toString()}`;
   }
 
   private getTokenFromUrl(url: string): KingsChatTokens | null {
@@ -99,10 +126,13 @@ class KingsChatService {
   }
 
   async login(): Promise<KingsChatTokens> {
-    const redirectUri = Linking.createURL("auth/kingschat/callback");
-    const oauthUrl = this.getOauthUrl(redirectUri);
+    const appRedirectUri = Linking.createURL("kingschat-callback");
+    const oauthUrl = this.getOauthUrl(appRedirectUri);
 
-    const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
+    const result = await WebBrowser.openAuthSessionAsync(
+      oauthUrl,
+      appRedirectUri,
+    );
 
     if (result.type !== "success") {
       throw new KingsChatAuthError(

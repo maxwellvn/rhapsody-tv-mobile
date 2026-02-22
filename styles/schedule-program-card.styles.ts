@@ -13,7 +13,8 @@ export const styles = StyleSheet.create({
   },
   containerLive: {
     borderColor: '#EF4444',
-    borderWidth: 2,
+    borderWidth: 1,
+    backgroundColor: '#FEF2F2',
   },
   topRow: {
     flexDirection: 'row',
@@ -84,11 +85,15 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: wp(16),
     flex: 1,
+    minHeight: hp(20),
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: wp(6),
+  },
+  infoItemHidden: {
+    opacity: 0,
   },
   infoIcon: {
     width: wp(18),
@@ -111,9 +116,17 @@ export const styles = StyleSheet.create({
     paddingVertical: hp(10),
     borderRadius: borderRadius.md,
   },
+  watchButtonActive: {
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
   watchButtonText: {
     fontSize: fs(14),
     fontFamily: FONTS.semibold,
     color: '#FFFFFF',
+  },
+  watchButtonTextActive: {
+    color: "#6B7280",
   },
 });

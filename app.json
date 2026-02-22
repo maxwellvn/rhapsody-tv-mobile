@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Rhapsody_tv",
+    "name": "Rhapsody TV",
     "slug": "Rhapsody_tv",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,8 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.rhapsodytv.app",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -31,6 +34,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "androidMode": "default"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/logo/Logo.png",
@@ -42,7 +51,8 @@
             "backgroundColor": "#ffffff"
           }
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -50,6 +60,8 @@
     },
     "extra": {
       "router": {},
+      "kingschatAuthBaseUrl": "https://accounts.kingsch.at",
+      "kingschatClientId": "com.kingschat",
       "eas": {
         "projectId": "70fbc464-4c2c-4cb9-be76-008a04f9ca7f"
       }

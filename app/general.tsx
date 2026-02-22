@@ -1,4 +1,4 @@
-import { SettingsItemArrow } from "@/components/settings/settings-item-arrow";
+import { AppSpinner } from "@/components/app-spinner";
 import { SettingsItemToggle } from "@/components/settings/settings-item-toggle";
 import { SettingsSection } from "@/components/settings/settings-section";
 import {
@@ -10,7 +10,6 @@ import { fs, hp, spacing, wp } from "@/utils/responsive";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
     Image,
     Pressable,
     ScrollView,
@@ -26,22 +25,16 @@ export default function GeneralScreen() {
   const { mutate: updateSettings, isPending: isUpdating } =
     useUpdateUserSettings();
 
-  const [appLanguage, setAppLanguage] = useState<string>("en");
   const [autoRotate, setAutoRotate] = useState<boolean>(false);
 
   useEffect(() => {
     if (settings) {
-      setAppLanguage(settings.general.appLanguage);
       setAutoRotate(settings.general.autoRotateScreen);
     }
   }, [settings]);
 
   const handleBack = () => {
     router.back();
-  };
-
-  const handleAppLanguage = () => {
-    // Language picker could be implemented here. For now we keep current value.
   };
 
   const handleAutoRotateChange = (value: boolean) => {
@@ -78,16 +71,11 @@ export default function GeneralScreen() {
         >
           {(isLoading || isUpdating) && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#000" />
+              <AppSpinner size="small" color="#000" />
             </View>
           )}
 
           <SettingsSection>
-            <SettingsItemArrow
-              label="App Language"
-              value={appLanguage}
-              onPress={handleAppLanguage}
-            />
             <SettingsItemToggle
               label="Auto-Rotate Screen"
               description="Your device will switch to landscape layout when rotated, if portrait lock is disabled."

@@ -1,7 +1,16 @@
 import { FONTS } from '@/styles/global';
-import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Badge } from '../badge';
-import { wp, hp, fs, spacing, borderRadius, dimensions } from '@/utils/responsive';
+import {
+  Image,
+  ImageSourcePropType,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { fs, spacing, borderRadius, dimensions, wp } from '@/utils/responsive';
+import { getCardDimensions } from '@/utils/card-dimensions';
+import { useMemo } from 'react';
 
 type ChannelCardProps = {
   logoSource: ImageSourcePropType;
@@ -10,22 +19,36 @@ type ChannelCardProps = {
   onPress?: () => void;
 };
 
-export function ChannelCard({ 
-  logoSource, 
-  channelName, 
+export function ChannelCard({
+  logoSource,
+  channelName,
   isLive = false,
-  onPress 
+  onPress,
 }: ChannelCardProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const cardDimensions = useMemo(
+    () => getCardDimensions(windowWidth),
+    [windowWidth],
+  );
+
   return (
-    <Pressable style={styles.container} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.container,
+        { width: cardDimensions.channelCardWidth },
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+    >
       <View style={styles.logoContainer}>
         {isLive && (
-          <View style={styles.badgeContainer}>
-            <Badge label="Live" dotColor="#FF0000" />
+          <View style={styles.liveBadge}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
           </View>
         )}
-        <Image 
-          source={logoSource} 
+        <Image
+          source={logoSource}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -39,27 +62,56 @@ export function ChannelCard({
 
 const styles = StyleSheet.create({
   container: {
-    width: dimensions.isTablet ? wp(140) : wp(120),
     marginRight: spacing.lg,
+    borderRadius: borderRadius.md,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#94A3B8',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    padding: spacing.sm,
+  },
+  pressed: {
+    opacity: 0.78,
   },
   logoContainer: {
     position: 'relative',
     width: '100%',
-    height: dimensions.isTablet ? hp(150) : hp(120),
-    borderRadius: borderRadius.md,
+    aspectRatio: 1,
+    borderRadius: borderRadius.sm,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
-    borderColor: '#E5E5E5',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.md,
+    padding: spacing.sm,
   },
-  badgeContainer: {
+  liveBadge: {
     position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
+    top: spacing.xs,
+    left: spacing.xs,
     zIndex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp(3),
+    backgroundColor: '#EF4444',
+    paddingHorizontal: wp(6),
+    paddingVertical: wp(2),
+    borderRadius: borderRadius.full,
+  },
+  liveDot: {
+    width: wp(4),
+    height: wp(4),
+    borderRadius: wp(2),
+    backgroundColor: '#FFFFFF',
+  },
+  liveText: {
+    color: '#FFFFFF',
+    fontSize: fs(8),
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.5,
   },
   logo: {
     width: '100%',
@@ -67,9 +119,9 @@ const styles = StyleSheet.create({
   },
   channelName: {
     marginTop: spacing.sm,
-    fontSize: dimensions.isTablet ? fs(16) : fs(14),
+    fontSize: dimensions.isTablet ? fs(15) : fs(13),
     fontFamily: FONTS.semibold,
-    color: '#000000',
+    color: '#0F172A',
     textAlign: 'center',
   },
 });

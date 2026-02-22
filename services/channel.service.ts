@@ -2,6 +2,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import {
     ApiResponse,
     ChannelDetail,
+    ChannelLivestream,
     ChannelSchedule,
     ChannelVideosResponse,
 } from "@/types/api.types";
@@ -26,9 +27,10 @@ class ChannelService {
     slug: string,
     page: number = 1,
     limit: number = 20,
+    programId?: string,
   ): Promise<ApiResponse<ChannelVideosResponse>> {
     return api.get<ChannelVideosResponse>(API_ENDPOINTS.CHANNELS.VIDEOS(slug), {
-      params: { page, limit },
+      params: { page, limit, programId },
     });
   }
 
@@ -43,6 +45,22 @@ class ChannelService {
     return api.get<ChannelSchedule[]>(API_ENDPOINTS.CHANNELS.SCHEDULE(slug), {
       params: { date, limit },
     });
+  }
+
+  /**
+   * Get channel livestreams by slug
+   */
+  async getChannelLivestreams(
+    slug: string,
+    limit?: number,
+    status?: "scheduled" | "live" | "ended" | "canceled",
+  ): Promise<ApiResponse<ChannelLivestream[]>> {
+    return api.get<ChannelLivestream[]>(
+      API_ENDPOINTS.CHANNELS.LIVESTREAMS(slug),
+      {
+        params: { limit, status },
+      },
+    );
   }
 
   /**

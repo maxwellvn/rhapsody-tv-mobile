@@ -25,7 +25,7 @@ export function VideoRecommendationCard({
   viewCount,
   timeAgo,
   isLive = false,
-  duration = '30:58',
+  duration,
   onPress,
   onMenuPress,
 }: VideoRecommendationCardProps) {
@@ -47,9 +47,11 @@ export function VideoRecommendationCard({
         )}
         
         {/* Bottom Right - Duration */}
-        <View style={styles.durationBadge}>
-          <Text style={styles.durationText}>{duration}</Text>
-        </View>
+        {duration ? (
+          <View style={styles.durationBadge}>
+            <Text style={styles.durationText}>{duration}</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Video Info */}

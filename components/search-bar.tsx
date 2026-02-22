@@ -1,20 +1,38 @@
 import { FONTS } from '@/styles/global';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
 
 type SearchBarProps = {
   placeholder?: string;
+  initialValue?: string;
+  value?: string;
   onSearch?: (text: string) => void;
+  onSubmit?: (text: string) => void;
   style?: ViewStyle;
 };
 
-export function SearchBar({ 
-  placeholder = 'Search channels and programs...', 
+export function SearchBar({
+  placeholder = 'Search channels and programs...',
+  initialValue = '',
+  value,
   onSearch,
-  style 
+  onSubmit,
+  style
 }: SearchBarProps) {
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState(value ?? initialValue);
+
+  useEffect(() => {
+    if (value !== undefined) {
+      setSearchText(value);
+    }
+  }, [value]);
+
+  useEffect(() => {
+    if (value === undefined) {
+      setSearchText(initialValue);
+    }
+  }, [initialValue, value]);
 
   const handleSearch = (text: string) => {
     setSearchText(text);
@@ -35,6 +53,8 @@ export function SearchBar({
         placeholderTextColor="#999"
         value={searchText}
         onChangeText={handleSearch}
+        returnKeyType="search"
+        onSubmitEditing={() => onSubmit?.(searchText)}
       />
       {searchText.length > 0 && (
         <Pressable onPress={handleClear} style={styles.clearButton} hitSlop={8}>

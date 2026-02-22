@@ -13,7 +13,7 @@ export function AboutTab({
   description = "This Morning with Rhapsody of Realities is a daily live program broadcast on Mondays to Saturdays. Its sole purpose is to inspire, uplift, and keep viewers up-to-date with the amazing feats of our Messenger Angel, Rhapsody of Realities, through insightful interviews, testimonies and discussions with guests from all over the globe.",
   website = "https://rhapsodydailies.org",
   joinedDate = "Joined 14 Jul 2016",
-  subscriberCount = "500k subscribers",
+  subscriberCount = "0 subscribers",
 }: AboutTabProps) {
   const handleWebsitePress = () => {
     Linking.openURL(website).catch((err) => console.error('Failed to open URL:', err));

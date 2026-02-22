@@ -68,6 +68,10 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
+  username?: string;
+  kingsChatUsername?: string;
+  avatar?: string;
+  gender?: "male" | "female";
   roles: string[];
 }
 
@@ -75,7 +79,6 @@ export interface User {
  * User Settings (server DTO shape)
  */
 export interface UserGeneralSettings {
-  appLanguage: string;
   autoRotateScreen: boolean;
 }
 
@@ -166,6 +169,7 @@ export interface Channel {
   coverImageUrl?: string; // Added
   description: string;
   websiteUrl?: string; // Added
+  defaultLiveStreamId?: string;
   subscriberCount: number;
   videoCount: number;
   isSubscribed: boolean;
@@ -190,6 +194,11 @@ export interface ChannelSchedule {
   id: string;
   title: string;
   description: string;
+  scheduleType?: "daily" | "weekly" | "once";
+  startTimeOfDay?: string;
+  endTimeOfDay?: string;
+  daysOfWeek?: number[];
+  timezone?: string;
   startTime: string;
   endTime: string;
   durationInMinutes: number;
@@ -197,12 +206,30 @@ export interface ChannelSchedule {
   isLive: boolean;
   viewerCount: number;
   bookmarkCount: number;
-  videoId: string;
-  liveStreamId: string;
+  videoId?: string;
+  liveStreamId?: string;
+  thumbnailUrl?: string;
+}
+
+export interface ChannelLivestream {
+  id: string;
+  title: string;
+  description?: string;
+  scheduleType?: "continuous" | "scheduled";
+  status: "scheduled" | "live" | "ended" | "canceled";
+  scheduledStartAt?: string;
+  scheduledEndAt?: string;
+  startedAt?: string;
+  endedAt?: string;
+  thumbnailUrl?: string;
+  playbackUrl?: string;
+  isChatEnabled: boolean;
+  isDefaultForChannel: boolean;
 }
 
 export interface ChannelVideoListItemDto {
   id: string;
+  programId?: string;
   title: string;
   description?: string;
   playbackUrl: string;
@@ -252,7 +279,8 @@ export interface Comment {
   author: {
     id: string;
     name: string;
-    avatar: string;
+    avatar?: string;
+    gender?: "male" | "female";
   };
   likes: number;
   isLiked: boolean;
@@ -296,7 +324,6 @@ export interface NotificationSettings {
 
 export interface UserSettings {
   general: {
-    language: string;
     autoplay: boolean;
     restrictedMode: boolean;
   };
@@ -369,19 +396,26 @@ export interface SearchHistory {
 export interface LiveNowProgram {
   id: string;
   title: string;
-  description: string;
+  description?: string;
+  scheduleType?: "daily" | "weekly" | "once" | "continuous" | "scheduled";
   startTime: string;
   endTime: string;
   isLive: boolean;
-  channel: {
+  status?: "scheduled" | "live" | "ended" | "canceled";
+  channel?: {
     id: string;
     name: string;
     slug: string;
-    logoUrl: string;
-    coverImageUrl: string;
+    logoUrl?: string;
+    coverImageUrl?: string;
+    defaultLiveStreamId?: string;
   };
-  videoId: string;
+  videoId?: string;
   liveStreamId: string;
+  playbackUrl?: string;
+  thumbnailUrl?: string;
+  isChatEnabled?: boolean;
+  isDefaultForChannel?: boolean;
 }
 
 export interface ContinueWatchingItem {
@@ -410,27 +444,40 @@ export interface HomepageChannel {
   slug: string;
   logoUrl: string;
   coverImageUrl: string;
+  defaultLiveStreamId?: string;
 }
 
 export interface HomepageProgram {
   id: string;
   title: string;
-  description: string;
+  description?: string;
+  scheduleType?: "daily" | "weekly" | "once" | "continuous" | "scheduled";
+  startTimeOfDay?: string;
+  endTimeOfDay?: string;
+  daysOfWeek?: number[];
+  timezone?: string;
   startTime: string;
   endTime: string;
   isLive: boolean;
+  status?: "scheduled" | "live" | "ended" | "canceled";
   channel: {
     id: string;
     name: string;
     slug: string;
     logoUrl: string;
     coverImageUrl: string;
+    defaultLiveStreamId?: string;
   };
-  videoId: string;
-  liveStreamId: string;
+  videoId?: string;
+  liveStreamId?: string;
+  playbackUrl?: string;
+  thumbnailUrl?: string;
+  isChatEnabled?: boolean;
+  isDefaultForChannel?: boolean;
+  videoCount?: number;
 }
 
-// Livestream details returned by stream/watch endpoints
+// Livestream details returned by watch-livestream endpoint
 export interface LiveStreamDetails extends LiveNowProgram {
   rtmpUrl?: string;
 }
@@ -452,12 +499,58 @@ export interface HomepageFeaturedVideo {
 }
 
 /**
+ * Unified Search Types
+ */
+
+export interface SearchChannelResult {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logoUrl?: string;
+  coverImageUrl?: string;
+  defaultLiveStreamId?: string;
+  subscriberCount: number;
+}
+
+export interface SearchProgramResult {
+  id: string;
+  title: string;
+  description?: string;
+  scheduleType?: string;
+  startTime: string;
+  endTime: string;
+  isLive: boolean;
+  thumbnailUrl?: string;
+  channel?: {
+    id: string;
+    name: string;
+    slug: string;
+    logoUrl?: string;
+    coverImageUrl?: string;
+    defaultLiveStreamId?: string;
+  };
+}
+
+export interface UnifiedSearchResults {
+  videos: HomepageFeaturedVideo[];
+  channels: SearchChannelResult[];
+  programs: SearchProgramResult[];
+  totals: {
+    videos: number;
+    channels: number;
+    programs: number;
+  };
+}
+
+/**
  * VOD (Video on Demand) Types
  */
 
 export interface VodVideoResponseDto {
   id: string;
   channelId: string;
+  programId?: string;
   title: string;
   description: string;
   playbackUrl: string;
@@ -473,6 +566,10 @@ export interface VodVideoResponseDto {
     name: string;
     slug: string;
     logoUrl: string;
+  };
+  program?: {
+    id: string;
+    title: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -490,15 +587,25 @@ export interface VodCommentResponseDto {
   id: string;
   videoId: string;
   userId: string;
-  content: string;
-  likes: number;
+  content?: string;
+  message?: string;
+  likes?: number;
+  likeCount?: number;
   isLiked: boolean;
-  replyCount: number;
+  replyCount?: number;
   parentId?: string;
+  parentCommentId?: string;
   author: {
     id: string;
     name: string;
-    avatar: string;
+    avatar?: string;
+    gender?: "male" | "female";
+  } | undefined;
+  user?: {
+    id: string;
+    fullName: string;
+    avatar?: string;
+    gender?: "male" | "female";
   };
   replies?: VodCommentResponseDto[];
   createdAt: string;
@@ -514,7 +621,8 @@ export interface VodPaginatedCommentsResponseDto {
 }
 
 export interface CreateCommentDto {
-  content: string;
+  message?: string;
+  content?: string;
   parentId?: string;
 }
 
@@ -529,7 +637,8 @@ export interface NotificationDto {
     | "channel_go_live"
     | "channel_new_program"
     | "comment_liked"
-    | "comment_replied";
+    | "comment_replied"
+    | "announcement";
   title: string;
   body: string;
   data?: Record<string, any>;
@@ -543,6 +652,7 @@ export interface PaginatedNotificationsDto {
   page: number;
   limit: number;
   totalPages: number;
+  unreadCount?: number;
 }
 
 /**
@@ -570,6 +680,12 @@ export interface ChannelSubscriptionStatusResponse {
   subscription?: ChannelSubscriptionResponseDto;
 }
 
+export interface ProgramSubscriptionStatusResponse {
+  programId: string;
+  isSubscribed: boolean;
+  subscriberCount: number;
+}
+
 /**
  * Update Progress Types
  */
@@ -592,6 +708,7 @@ export interface ChannelDetailsDto {
   logoUrl?: string;
   coverImageUrl?: string;
   websiteUrl?: string;
+  defaultLiveStreamId?: string;
   subscriberCount: number;
   videoCount: number;
   joinedAt: string;
@@ -606,6 +723,11 @@ export interface ChannelProgramDto {
   id: string;
   title: string;
   description: string;
+  scheduleType?: "daily" | "weekly" | "once";
+  startTimeOfDay?: string;
+  endTimeOfDay?: string;
+  daysOfWeek?: number[];
+  timezone?: string;
   startTime: string;
   endTime: string;
   durationInMinutes: number;
@@ -613,6 +735,6 @@ export interface ChannelProgramDto {
   isLive: boolean;
   viewerCount: number;
   bookmarkCount: number;
-  videoId: string;
-  liveStreamId: string;
+  videoId?: string;
+  liveStreamId?: string;
 }

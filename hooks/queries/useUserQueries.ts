@@ -48,6 +48,9 @@ export function useWatchlist(page: number = 1, limit: number = 20) {
       const response = await userService.getWatchlist(page, limit);
       return response.data;
     },
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 
@@ -86,6 +89,9 @@ export function useWatchHistory(page: number = 1, limit: number = 20) {
       const response = await userService.getWatchHistory(page, limit);
       return response.data;
     },
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 

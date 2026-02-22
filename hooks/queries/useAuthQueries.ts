@@ -109,6 +109,8 @@ export function useKingsChatLogin() {
 
 /**
  * Logout mutation
+ * Always clears local state and navigates to signin, even if the
+ * server call fails (e.g. no network). The backend call is best-effort.
  */
 export function useLogout() {
   const { logout } = useAuth();
@@ -116,16 +118,22 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      await authService.logout();
+      // Best-effort server logout — don't block on failure
+      try {
+        await authService.logout();
+      } catch {
+        // Ignore network errors — local logout will still proceed
+      }
     },
     onSuccess: async () => {
-      // Clear auth state
       await logout();
-
-      // Clear all queries
       queryClient.clear();
-
-      // Navigate to auth entry
+      router.replace({ pathname: "/(auth)/signin", params: { tab: "signin" } });
+    },
+    onSettled: async () => {
+      // Safety net: always clear local state even if mutationFn threw
+      await logout();
+      queryClient.clear();
       router.replace({ pathname: "/(auth)/signin", params: { tab: "signin" } });
     },
   });

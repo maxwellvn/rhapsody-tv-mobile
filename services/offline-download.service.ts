@@ -15,6 +15,14 @@ export type DownloadedVideo = {
   sizeBytes?: number;
 };
 
+export type ActiveDownload = {
+  videoId: string;
+  title: string;
+  thumbnailUrl?: string;
+  channelName?: string;
+  progress: number; // 0–1
+};
+
 type DownloadVideoInput = {
   videoId: string;
   title: string;
@@ -25,7 +33,69 @@ type DownloadVideoInput = {
   onProgress?: (progress: number) => void;
 };
 
+type ActiveDownloadListener = (downloads: ActiveDownload[]) => void;
+
 class OfflineDownloadService {
+  // Active download tracking
+  private activeDownloads = new Map<
+    string,
+    ActiveDownload & { _cancel: () => void }
+  >();
+  private activeListeners = new Set<ActiveDownloadListener>();
+  private cancelledIds = new Set<string>();
+
+  // Subscribe to live active-download updates. Returns an unsubscribe function.
+  subscribeToActiveDownloads(listener: ActiveDownloadListener): () => void {
+    this.activeListeners.add(listener);
+    listener(this._getActivePublic());
+    return () => {
+      this.activeListeners.delete(listener);
+    };
+  }
+
+  getActiveDownloadsList(): ActiveDownload[] {
+    return this._getActivePublic();
+  }
+
+  cancelDownload(videoId: string): void {
+    const entry = this.activeDownloads.get(videoId);
+    if (entry) {
+      entry._cancel();
+    }
+  }
+
+  private _getActivePublic(): ActiveDownload[] {
+    return [...this.activeDownloads.values()].map(
+      ({ _cancel, ...rest }) => rest,
+    );
+  }
+
+  private _notifyListeners() {
+    const list = this._getActivePublic();
+    this.activeListeners.forEach((fn) => fn(list));
+  }
+
+  private _registerActive(
+    entry: ActiveDownload & { _cancel: () => void },
+  ): void {
+    this.activeDownloads.set(entry.videoId, entry);
+    this._notifyListeners();
+  }
+
+  private _updateActiveProgress(videoId: string, progress: number): void {
+    const entry = this.activeDownloads.get(videoId);
+    if (entry) {
+      entry.progress = progress;
+      this._notifyListeners();
+    }
+  }
+
+  private _unregisterActive(videoId: string): void {
+    this.activeDownloads.delete(videoId);
+    this.cancelledIds.delete(videoId);
+    this._notifyListeners();
+  }
+
   private async ensureDownloadsDir(): Promise<void> {
     const dirInfo = await FileSystem.getInfoAsync(DOWNLOADS_DIR);
     if (!dirInfo.exists) {
@@ -87,10 +157,11 @@ class OfflineDownloadService {
 
   private async downloadHlsVideo(input: DownloadVideoInput): Promise<string> {
     const reportProgress = (value: number) => {
-      if (!input.onProgress) {
-        return;
+      const clamped = Math.max(0, Math.min(value, 1));
+      this._updateActiveProgress(input.videoId, clamped);
+      if (input.onProgress) {
+        input.onProgress(clamped);
       }
-      input.onProgress(Math.max(0, Math.min(value, 1)));
     };
 
     const videoDir = `${DOWNLOADS_DIR}${input.videoId}/`;
@@ -140,6 +211,11 @@ class OfflineDownloadService {
       remoteUrl: string,
       kind: "segment" | "key" | "map",
     ) => {
+      // Check for cancellation before each segment download
+      if (this.cancelledIds.has(input.videoId)) {
+        throw new Error("Download cancelled");
+      }
+
       const existing = localFileByRemoteUri.get(remoteUrl);
       if (existing) {
         return existing;
@@ -242,7 +318,10 @@ class OfflineDownloadService {
     return item;
   }
 
-  async downloadVideo(input: DownloadVideoInput): Promise<DownloadedVideo> {
+  // Returns null if the download was cancelled, throws on real errors.
+  async downloadVideo(
+    input: DownloadVideoInput,
+  ): Promise<DownloadedVideo | null> {
     const existing = await this.getDownloadedVideo(input.videoId);
     if (existing) {
       return existing;
@@ -252,7 +331,33 @@ class OfflineDownloadService {
     let localUri = "";
 
     if (this.isHlsUrl(input.playbackUrl)) {
-      localUri = await this.downloadHlsVideo(input);
+      this._registerActive({
+        videoId: input.videoId,
+        title: input.title,
+        thumbnailUrl: input.thumbnailUrl,
+        channelName: input.channelName,
+        progress: 0,
+        _cancel: () => {
+          this.cancelledIds.add(input.videoId);
+        },
+      });
+
+      try {
+        localUri = await this.downloadHlsVideo(input);
+      } catch (err: any) {
+        const wasCancelled = this.cancelledIds.has(input.videoId);
+        this._unregisterActive(input.videoId);
+        // Clean up partial HLS dir
+        const videoDir = `${DOWNLOADS_DIR}${input.videoId}/`;
+        await FileSystem.deleteAsync(videoDir, { idempotent: true }).catch(
+          () => {},
+        );
+        if (wasCancelled || err?.message === "Download cancelled") {
+          return null;
+        }
+        throw err;
+      }
+      this._unregisterActive(input.videoId);
     } else {
       const ext = this.getFileExtension(input.playbackUrl);
       const destination = `${DOWNLOADS_DIR}${input.videoId}.${ext}`;
@@ -262,19 +367,47 @@ class OfflineDownloadService {
         destination,
         {},
         ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
-          if (!input.onProgress || totalBytesExpectedToWrite <= 0) {
-            return;
+          if (totalBytesExpectedToWrite <= 0) return;
+          const progress = totalBytesWritten / totalBytesExpectedToWrite;
+          this._updateActiveProgress(input.videoId, progress);
+          if (input.onProgress) {
+            input.onProgress(progress);
           }
-          input.onProgress(totalBytesWritten / totalBytesExpectedToWrite);
         },
       );
 
-      const result = await downloadResumable.downloadAsync();
-      if (!result?.uri) {
-        throw new Error("Download was interrupted");
-      }
+      this._registerActive({
+        videoId: input.videoId,
+        title: input.title,
+        thumbnailUrl: input.thumbnailUrl,
+        channelName: input.channelName,
+        progress: 0,
+        _cancel: () => {
+          this.cancelledIds.add(input.videoId);
+          downloadResumable.cancelAsync().catch(() => {});
+        },
+      });
 
-      localUri = result.uri;
+      try {
+        const result = await downloadResumable.downloadAsync();
+        if (!result?.uri) {
+          const wasCancelled = this.cancelledIds.has(input.videoId);
+          this._unregisterActive(input.videoId);
+          if (wasCancelled) {
+            return null;
+          }
+          throw new Error("Download was interrupted");
+        }
+        localUri = result.uri;
+      } catch (err: any) {
+        const wasCancelled = this.cancelledIds.has(input.videoId);
+        this._unregisterActive(input.videoId);
+        if (wasCancelled) {
+          return null;
+        }
+        throw err;
+      }
+      this._unregisterActive(input.videoId);
     }
 
     const fileInfo = await FileSystem.getInfoAsync(localUri);

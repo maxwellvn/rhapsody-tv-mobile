@@ -9,9 +9,11 @@ type ScheduleProgramCardProps = {
   category: string;
   title: string;
   description: string;
-  hostCount: number;
   watchingCount: string;
   isLive?: boolean;
+  isActionActive?: boolean;
+  actionLabel?: string;
+  hideAction?: boolean;
   onPress?: () => void;
   onWatchNowPress?: () => void;
 };
@@ -22,9 +24,11 @@ export function ScheduleProgramCard({
   category,
   title,
   description,
-  hostCount,
   watchingCount,
   isLive = false,
+  isActionActive = false,
+  actionLabel = 'Watch Now',
+  hideAction = false,
   onPress,
   onWatchNowPress,
 }: ScheduleProgramCardProps) {
@@ -66,30 +70,25 @@ export function ScheduleProgramCard({
       {/* Description */}
       <Text style={styles.description}>{description}</Text>
 
-      {/* Bottom Row: Host, Watching, Watch Now Button */}
+      {/* Bottom Row: Watching, Watch Now Button */}
       <View style={styles.bottomRow}>
         <View style={styles.infoSection}>
-          <View style={styles.infoItem}>
-            <Image
-              source={require('@/assets/Icons/persons.png')}
-              style={styles.infoIcon}
-              resizeMode="contain"
-            />
-            <Text style={styles.infoText}>Host: {hostCount}</Text>
-          </View>
-          
-          <View style={styles.infoItem}>
-            <Text style={styles.watchingText}>{watchingCount} watching</Text>
+          <View style={[styles.infoItem, !isLive && styles.infoItemHidden]}>
+            <Text style={styles.watchingText}>
+              {`${watchingCount} watching`}
+            </Text>
           </View>
         </View>
 
-        <Button 
-          style={styles.watchButton}
-          textStyle={styles.watchButtonText}
-          onPress={onWatchNowPress}
-        >
-          Watch Now
-        </Button>
+        {!hideAction && (
+          <Button
+            style={[styles.watchButton, isActionActive && styles.watchButtonActive]}
+            textStyle={[styles.watchButtonText, isActionActive && styles.watchButtonTextActive]}
+            onPress={onWatchNowPress}
+          >
+            {actionLabel}
+          </Button>
+        )}
       </View>
     </Pressable>
   );

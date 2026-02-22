@@ -24,11 +24,11 @@ export default function SettingsScreen() {
   };
 
   const handleManageHistory = () => {
-    console.log('Manage all history pressed');
+    router.push('/watch-history');
   };
 
   const handlePrivacy = () => {
-    console.log('Privacy pressed');
+    router.push('/privacy');
   };
 
   const handleQuality = () => {
@@ -39,12 +39,8 @@ export default function SettingsScreen() {
     router.push('/downloads');
   };
 
-  const handleHelp = () => {
-    console.log('Help pressed');
-  };
-
   const handleAbout = () => {
-    console.log('About pressed');
+    router.push('/about');
   };
 
   const handleSignOut = () => {
@@ -113,14 +109,9 @@ export default function SettingsScreen() {
             />
           </SettingsSection>
 
-          {/* Help and Policies */}
+          {/* Policies */}
           <SettingsSection>
-            <SettingsTitle title="Help and  Policies" />
-            <SettingsItem
-              icon={require('@/assets/Icons/settings.png')}
-              label="Help"
-              onPress={handleHelp}
-            />
+            <SettingsTitle title="Policies" />
             <SettingsItem
               icon={require('@/assets/Icons/info.png')}
               label="About"

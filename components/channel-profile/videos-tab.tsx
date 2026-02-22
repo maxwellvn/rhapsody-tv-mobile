@@ -1,19 +1,55 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { HorizontalVideoCard } from "@/components/program-profile/horizontal-video-card";
+import { EmptyState } from "@/components/empty-state";
 import { useChannelVideos } from "@/hooks/queries/useChannelQueries";
-import { useAddToWatchlist } from "@/hooks/queries/useUserQueries";
+import {
+  useAddToWatchlist,
+  useRemoveFromWatchlist,
+  useWatchlist,
+} from "@/hooks/queries/useUserQueries";
+import { useVideoDuration } from "@/hooks/useVideoDuration";
 import { FONTS } from "@/styles/global";
-import { formatDuration } from "@/utils/formatters";
+import { ChannelVideoListItemDto } from "@/types/api.types";
+import { formatDuration, formatRelativeTime } from "@/utils/formatters";
 import { fs, hp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  ImageSourcePropType,
   Modal,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+
+type ChannelVideoItemProps = {
+  video: ChannelVideoListItemDto;
+  channelSlug: string;
+  onPress: () => void;
+  onMenuPress: () => void;
+};
+
+function ChannelVideoItem({ video, channelSlug, onPress, onMenuPress }: ChannelVideoItemProps) {
+  const duration = useVideoDuration(video.playbackUrl, video.durationSeconds);
+  return (
+    <HorizontalVideoCard
+      thumbnailSource={
+        video.thumbnailUrl
+          ? ({ uri: video.thumbnailUrl } as ImageSourcePropType)
+          : (require("@/assets/images/Image-11.png") as ImageSourcePropType)
+      }
+      duration={formatDuration(duration)}
+      title={video.title}
+      channelName={channelSlug}
+      viewCount={`${video.viewCount ?? 0} views`}
+      timeAgo={video.publishedAt ? formatRelativeTime(video.publishedAt) : "moments ago"}
+      onPress={onPress}
+      onMenuPress={onMenuPress}
+    />
+  );
+}
 
 type VideosTabProps = {
   slug: string;
@@ -22,9 +58,15 @@ type VideosTabProps = {
 export function VideosTab({ slug }: VideosTabProps) {
   const router = useRouter();
   const { data, isLoading } = useChannelVideos(slug);
-  const { mutate: addToWatchlist } = useAddToWatchlist();
+  const { data: watchlistData } = useWatchlist(1, 200);
+  const { mutateAsync: addToWatchlist } = useAddToWatchlist();
+  const { mutateAsync: removeFromWatchlist } = useRemoveFromWatchlist();
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const isSelectedVideoInWatchlist = !!(
+    selectedVideoId &&
+    watchlistData?.items?.some((item) => item.video?.id === selectedVideoId)
+  );
 
   const handleVideoPress = (videoId: string) => {
     router.push(`/video?id=${videoId}`);
@@ -35,12 +77,18 @@ export function VideosTab({ slug }: VideosTabProps) {
     setMenuVisible(true);
   };
 
-  const handleAddToWishlist = () => {
-    if (selectedVideoId) {
-      addToWatchlist({ videoId: selectedVideoId });
+  const handleToggleWatchlist = async () => {
+    if (!selectedVideoId) return;
+    try {
+      if (isSelectedVideoInWatchlist) {
+        await removeFromWatchlist(selectedVideoId);
+      } else {
+        await addToWatchlist({ videoId: selectedVideoId });
+      }
+    } finally {
+      setMenuVisible(false);
+      setSelectedVideoId(null);
     }
-    setMenuVisible(false);
-    setSelectedVideoId(null);
   };
 
   const handleCloseMenu = () => {
@@ -51,7 +99,7 @@ export function VideosTab({ slug }: VideosTabProps) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#1A237E" />
+        <AppSpinner size="small" color="#1A237E" />
       </View>
     );
   }
@@ -63,14 +111,18 @@ export function VideosTab({ slug }: VideosTabProps) {
       <Modal
         visible={menuVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={handleCloseMenu}
       >
         <Pressable style={styles.menuOverlay} onPress={handleCloseMenu}>
           <Pressable style={styles.menuSheet} onPress={() => undefined}>
             <Text style={styles.menuTitle}>Video options</Text>
-            <Pressable style={styles.menuItem} onPress={handleAddToWishlist}>
-              <Text style={styles.menuItemText}>Add to wishlist</Text>
+            <Pressable style={styles.menuItem} onPress={handleToggleWatchlist}>
+              <Text style={styles.menuItemText}>
+                {isSelectedVideoInWatchlist
+                  ? "Remove from Watchlist"
+                  : "Add to Watchlist"}
+              </Text>
             </Pressable>
             <Pressable
               style={[styles.menuItem, styles.menuCancel]}
@@ -87,20 +139,20 @@ export function VideosTab({ slug }: VideosTabProps) {
 
       {videos.length > 0 ? (
         videos.map((video) => (
-          <HorizontalVideoCard
+          <ChannelVideoItem
             key={video.id}
-            thumbnailSource={{ uri: video.thumbnailUrl || "" }}
-            duration={formatDuration(video.durationSeconds)}
-            title={video.title}
-            channelName={slug}
-            viewCount={`${video.viewCount ?? 0} views`}
-            timeAgo={video.publishedAt || ""}
+            video={video}
+            channelSlug={slug}
             onPress={() => handleVideoPress(video.id)}
             onMenuPress={() => handleMenuPress(video.id)}
           />
         ))
       ) : (
-        <Text style={styles.emptyText}>No videos found</Text>
+        <EmptyState
+          iconName="videocam-outline"
+          title="No videos yet"
+          subtitle="New uploads from this channel will appear here."
+        />
       )}
     </View>
   );
@@ -112,7 +164,7 @@ const styles = StyleSheet.create({
   },
   menuOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    backgroundColor: "rgba(0, 0, 0, 0.16)",
     justifyContent: "flex-end",
   },
   menuSheet: {
@@ -154,11 +206,5 @@ const styles = StyleSheet.create({
   loadingContainer: {
     padding: hp(40),
     alignItems: "center",
-  },
-  emptyText: {
-    textAlign: "center",
-    color: "#737373",
-    marginTop: hp(20),
-    fontFamily: FONTS.regular,
   },
 });

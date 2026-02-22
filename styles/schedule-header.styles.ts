@@ -11,18 +11,14 @@ export const styles = StyleSheet.create({
     fontSize: fs(20),
     fontFamily: FONTS.bold,
     color: '#000000',
-    marginBottom: hp(4),
+    marginBottom: hp(12),
   },
-  dateText: {
-    fontSize: fs(14),
-    fontFamily: FONTS.regular,
-    color: '#9CA3AF',
-    marginBottom: hp(16),
-  },
-  navigationRow: {
+
+  /* ── Date navigation: [<] [label] [>] ── */
+  dateNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp(8),
+    marginBottom: hp(10),
   },
   arrowButton: {
     width: wp(40),
@@ -34,10 +30,16 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  arrowButtonDisabled: {
+    opacity: 0.35,
+  },
   arrowIcon: {
     width: wp(16),
     height: hp(16),
     tintColor: '#000000',
+  },
+  arrowIconDisabled: {
+    tintColor: '#9CA3AF',
   },
   leftArrow: {
     transform: [{ rotate: '90deg' }],
@@ -45,23 +47,22 @@ export const styles = StyleSheet.create({
   rightArrow: {
     transform: [{ rotate: '-90deg' }],
   },
-  todayButton: {
-    paddingHorizontal: wp(10),
+  dateLabelButton: {
+    flex: 1,
     height: hp(40),
-    backgroundColor: '#FFFFFF',
-    borderRadius: borderRadius.md,
-    borderWidth: 0,
-    borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: wp(8),
   },
-  todayText: {
+  dateLabelText: {
     fontSize: fs(16),
     fontFamily: FONTS.semibold,
     color: '#000000',
+    textAlign: 'center',
   },
+
+  /* ── Pick a date — full width, stable position ── */
   pickDateButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     height: hp(40),
@@ -82,6 +83,8 @@ export const styles = StyleSheet.create({
     fontFamily: FONTS.regular,
     color: '#9CA3AF',
   },
+
+  /* ── Date picker modal ── */
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

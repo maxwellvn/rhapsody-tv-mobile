@@ -12,18 +12,20 @@ class SocketService {
   /**
    * Initialize socket connection
    */
-  async connect(): Promise<Socket> {
+  async connect(): Promise<Socket | null> {
     if (this.socket?.connected) {
       return this.socket;
     }
 
     const token = await storage.getAccessToken();
-    const baseUrl = API_CONFIG.BASE_URL.replace("/v1", ""); // Assuming ws base is same as API base but without version
+    const baseUrl = API_CONFIG.BASE_URL.replace(/\/v1\/?$/, "");
 
     this.socket = io(`${baseUrl}${this.namespace}`, {
-      auth: {
-        token: token,
-      },
+      auth: token
+        ? {
+            token,
+          }
+        : {},
       transports: ["websocket"],
       autoConnect: true,
     });

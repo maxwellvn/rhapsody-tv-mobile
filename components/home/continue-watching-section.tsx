@@ -11,7 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import {
   ImageSourcePropType,
-  ScrollView,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -23,40 +23,12 @@ export function ContinueWatchingSection() {
   const router = useRouter();
   const { data: continueWatchingData = [], isLoading } = useContinueWatching();
 
-  const handleCardPress = (videoId: string) => {
-    router.push(`/video?id=${videoId}`);
+  const handleCardPress = (videoId: string, startAt?: number) => {
+    router.push(`/video?id=${videoId}&startAt=${Math.max(0, Math.floor(startAt || 0))}`);
   };
-
-  // Mock data for fallback
-  const mockData = [
-    {
-      imageSource:
-        require("@/assets/images/carusel-2.png") as ImageSourcePropType,
-      title: "Your Loveworld Special with Pastor Chris Season 2 Phase 7",
-      badgeLabel: "Live",
-      badgeColor: "#FF0000",
-      showBadge: true,
-      videoId: "mock-1",
-    },
-    {
-      imageSource:
-        require("@/assets/images/Image-2.png") as ImageSourcePropType,
-      title: "Night Of A Thousand Crusades HIGHLIGHT 3",
-      badgeLabel: "New",
-      badgeColor: "#2563EB",
-      showBadge: true,
-      videoId: "mock-2",
-    },
-    {
-      imageSource:
-        require("@/assets/images/Image-1.png") as ImageSourcePropType,
-      title: "Rhapsody On The Daily Frontier",
-      badgeLabel: "Live",
-      badgeColor: "#FF0000",
-      showBadge: true,
-      videoId: "mock-3",
-    },
-  ];
+  const handleViewMore = () => {
+    router.push("/watch-history");
+  };
 
   // Show loading state with skeleton
   if (isLoading) {
@@ -66,103 +38,111 @@ export function ContinueWatchingSection() {
           width={wp(180)}
           height={dimensions.isTablet ? fs(28) : fs(20)}
           borderRadius={borderRadius.xs}
-          style={{ marginBottom: spacing.sm }}
+          style={{ marginBottom: spacing.sm, marginLeft: spacing.xl }}
         />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          style={styles.scrollView}
-        >
+        <View style={styles.grid}>
           {[1, 2, 3].map((item) => (
-            <View key={item} style={styles.skeletonCard}>
+            <View key={item} style={styles.cardWrapper}>
               <Skeleton
-                width={wp(160)}
+                width="100%"
                 height={dimensions.isTablet ? hp(120) : hp(90)}
                 borderRadius={borderRadius.sm}
               />
               <Skeleton
-                width={wp(140)}
+                width="90%"
                 height={dimensions.isTablet ? fs(18) : fs(14)}
                 borderRadius={borderRadius.xs}
                 style={{ marginTop: spacing.sm }}
               />
             </View>
           ))}
-        </ScrollView>
+        </View>
       </View>
     );
   }
 
-  // Show mock data if no continue watching data available
-  const displayData =
-    continueWatchingData.length > 0
-      ? continueWatchingData.map((item) => ({
-        imageSource: item.video.thumbnailUrl
-          ? ({ uri: item.video.thumbnailUrl } as ImageSourcePropType)
-          : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
-        title: item.video.title,
-        badgeLabel: undefined,
-        badgeColor: undefined,
-        showBadge: false,
-        videoId: item.video.id,
-      }))
-      : mockData;
+  const displayData = continueWatchingData.map((item) => ({
+    imageSource: item.video.thumbnailUrl
+      ? ({ uri: item.video.thumbnailUrl } as ImageSourcePropType)
+      : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
+    title: item.video.title,
+    badgeLabel: undefined,
+    badgeColor: undefined,
+    showBadge: false,
+    videoId: item.video.id,
+    progressSeconds: item.progressSeconds ?? 0,
+  }));
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Continue Watching</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Continue Watching</Text>
+        <Pressable onPress={handleViewMore}>
+          <Text style={styles.viewMoreText}>View more</Text>
+        </Pressable>
+      </View>
       {continueWatchingData.length === 0 && (
         <Text style={styles.noDataText}>No videos to continue watching</Text>
       )}
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        style={styles.scrollView}
-      >
-        {displayData.map((item, index) => (
-          <VideoCard
-            key={item.videoId || index}
-            imageSource={item.imageSource}
-            title={item.title}
-            badgeLabel={item.badgeLabel}
-            badgeColor={item.badgeColor}
-            showBadge={item.showBadge}
-            onPress={() => handleCardPress(item.videoId)}
-          />
-        ))}
-      </ScrollView>
+      {displayData.length > 0 && (
+        <View style={styles.grid}>
+          {displayData.map((item, index) => (
+            <View key={item.videoId || index} style={styles.cardWrapper}>
+              <VideoCard
+                imageSource={item.imageSource}
+                title={item.title}
+                badgeLabel={item.badgeLabel}
+                badgeColor={item.badgeColor}
+                showBadge={item.showBadge}
+                fitToContainer
+                onPress={() => handleCardPress(item.videoId, item.progressSeconds)}
+              />
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 0,
+    marginTop: spacing.xxl,
     marginBottom: spacing.xxl,
   },
   title: {
     fontSize: dimensions.isTablet ? fs(24) : fs(20),
     fontFamily: FONTS.bold,
-    color: "#000000",
+    color: "#0F172A",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
-  scrollView: {
-    marginLeft: 0,
+  viewMoreText: {
+    fontSize: dimensions.isTablet ? fs(14) : fs(13),
+    fontFamily: FONTS.semibold,
+    color: "#475569",
   },
-  scrollContent: {
-    paddingRight: 0,
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
-  skeletonCard: {
-    width: wp(160),
-    marginRight: spacing.md,
+  cardWrapper: {
+    width: dimensions.isTablet ? "31.5%" : "47.5%",
   },
   noDataText: {
     fontSize: dimensions.isTablet ? fs(16) : fs(14),
     fontFamily: FONTS.regular,
-    color: "#666666",
+    color: "#94A3B8",
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
 });

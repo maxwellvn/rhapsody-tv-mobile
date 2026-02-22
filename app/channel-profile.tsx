@@ -5,15 +5,16 @@ import { ChannelProfileHeader } from "@/components/channel-profile/profile-heade
 import { ScheduleTab } from "@/components/channel-profile/schedule-tab";
 import { VideosTab } from "@/components/channel-profile/videos-tab";
 import { Skeleton } from "@/components/skeleton";
-import { useChannel } from "@/hooks/queries/useChannelQueries";
+import { useChannel, channelKeys } from "@/hooks/queries/useChannelQueries";
 import { styles } from "@/styles/channel-profile.styles";
 import { borderRadius, fs, hp, spacing, wp } from "@/utils/responsive";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
     Image,
     Pressable,
+    RefreshControl,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -162,8 +163,23 @@ export default function ChannelProfileScreen() {
     "Home" | "Videos" | "Live" | "Schedule" | "About"
   >("Home");
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading } = useChannel(slug || "");
+  const { data, isLoading, refetch } = useChannel(slug || "");
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetch(),
+        queryClient.refetchQueries({ queryKey: channelKeys.videos(slug || "", 1) }),
+        queryClient.refetchQueries({ queryKey: channelKeys.livestreams(slug || "") }),
+        queryClient.refetchQueries({ queryKey: channelKeys.schedule(slug || "") }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch, queryClient, slug]);
 
   const handleBack = () => {
     router.back();
@@ -247,6 +263,9 @@ export default function ChannelProfileScreen() {
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
         >
           {/* Channel Profile Section */}
           {data && <ChannelProfileHeader channel={data.channel} />}

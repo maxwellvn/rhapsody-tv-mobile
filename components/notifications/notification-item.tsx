@@ -3,11 +3,12 @@ import { borderRadius, fs, hp, spacing, wp } from '@/utils/responsive';
 import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type NotificationItemProps = {
-  avatar: ImageSourcePropType;
+  avatar?: ImageSourcePropType;
   title: string;
   subtitle: string;
   timeAgo: string;
-  thumbnail: ImageSourcePropType;
+  thumbnail?: ImageSourcePropType;
+  isRead?: boolean;
   onPress?: () => void;
   onMenuPress?: () => void;
 };
@@ -18,21 +19,22 @@ export function NotificationItem({
   subtitle,
   timeAgo,
   thumbnail,
+  isRead = true,
   onPress,
   onMenuPress,
 }: NotificationItemProps) {
   return (
-    <Pressable style={styles.container} onPress={onPress}>
+    <Pressable style={[styles.container, !isRead && styles.unreadContainer]} onPress={onPress}>
       {/* Avatar */}
-      <Image
-        source={avatar}
-        style={styles.avatar}
-        resizeMode="cover"
-      />
+      {avatar ? (
+        <Image source={avatar} style={styles.avatar} resizeMode="cover" />
+      ) : (
+        <View style={styles.avatarPlaceholder} />
+      )}
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, !isRead && styles.titleUnread]} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
@@ -42,11 +44,11 @@ export function NotificationItem({
       </View>
 
       {/* Thumbnail */}
-      <Image
-        source={thumbnail}
-        style={styles.thumbnail}
-        resizeMode="cover"
-      />
+      {thumbnail ? (
+        <Image source={thumbnail} style={styles.thumbnail} resizeMode="cover" />
+      ) : null}
+
+      {!isRead && <View style={styles.unreadDot} />}
 
       {/* Menu Button */}
       <Pressable onPress={onMenuPress} style={styles.menuButton} hitSlop={8}>
@@ -69,10 +71,19 @@ const styles = StyleSheet.create({
     gap: wp(12),
     backgroundColor: '#FFFFFF',
   },
+  unreadContainer: {
+    backgroundColor: "#F8FAFF",
+  },
   avatar: {
     width: wp(40),
     height: wp(40),
     borderRadius: wp(28),
+  },
+  avatarPlaceholder: {
+    width: wp(40),
+    height: wp(40),
+    borderRadius: wp(28),
+    backgroundColor: "#E5E7EB",
   },
   content: {
     flex: 1,
@@ -82,6 +93,9 @@ const styles = StyleSheet.create({
     fontSize: fs(15),
     fontFamily: FONTS.medium,
     color: '#000000',
+  },
+  titleUnread: {
+    fontFamily: FONTS.bold,
   },
   subtitle: {
     fontSize: fs(14),
@@ -106,5 +120,11 @@ const styles = StyleSheet.create({
     height: wp(20),
     tintColor: '#737373',
     transform: [{ rotate: '90deg' }],
+  },
+  unreadDot: {
+    width: wp(8),
+    height: wp(8),
+    borderRadius: wp(4),
+    backgroundColor: "#2563EB",
   },
 });

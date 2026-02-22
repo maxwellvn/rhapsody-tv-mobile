@@ -16,7 +16,11 @@ export function ChannelCard({
   onPress 
 }: ChannelCardProps) {
   return (
-    <Pressable style={styles.container} onPress={onPress}>
+    <Pressable
+      style={styles.container}
+      onPress={onPress}
+      android_ripple={{ color: 'rgba(0, 0, 0, 0.06)', borderless: false }}
+    >
       <View style={styles.logoContainer}>
         {isLive && (
           <View style={styles.badgeContainer}>
@@ -39,6 +43,11 @@ export function ChannelCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    padding: 8,
   },
   logoContainer: {
     position: 'relative',
@@ -47,7 +56,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    borderWidth: 1,
     borderColor: '#E5E5E5',
     alignItems: 'center',
     justifyContent: 'center',

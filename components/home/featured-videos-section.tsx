@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import {
   ImageSourcePropType,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -22,53 +21,22 @@ export function FeaturedVideosSection() {
   };
 
   const handleSeeAllPress = () => {
-    router.push("/(tabs)/discover");
+    router.push("/featured");
   };
-
-  // Mock data fallback
-  const mockData = [
-    {
-      id: "mock-video-1",
-      title: "Your Loveworld Special with Pastor Chris Season 2 Phase 5",
-      thumbnail:
-        require("@/assets/images/carusel-2.png") as ImageSourcePropType,
-      badgeLabel: "Featured",
-      badgeColor: "#2563EB",
-    },
-    {
-      id: "mock-video-2",
-      title:
-        "NOTHING ON MEDIA IS NEUTRAL A CONVERSATION WITH BLOSSOM CHUKWUJEKWU",
-      thumbnail: require("@/assets/images/Image-6.png") as ImageSourcePropType,
-      badgeLabel: "Featured",
-      badgeColor: "#2563EB",
-    },
-    {
-      id: "mock-video-3",
-      title: "Your Loveworld Special with Pastor Chris Season 2 Phase 5",
-      thumbnail:
-        require("@/assets/images/carusel-2.png") as ImageSourcePropType,
-      badgeLabel: "Featured",
-      badgeColor: "#2563EB",
-    },
-  ];
 
   if (isLoading) {
     return <FeaturedVideosSkeleton />;
   }
 
-  const displayData =
-    featuredVideos.length > 0
-      ? featuredVideos.map((v) => ({
-        id: v.id,
-        title: v.title,
-        thumbnail: v.thumbnailUrl
-          ? ({ uri: v.thumbnailUrl } as ImageSourcePropType)
-          : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
-        badgeLabel: "Featured",
-        badgeColor: "#2563EB",
-      }))
-      : mockData;
+  const displayData = featuredVideos.map((v) => ({
+    id: v.id,
+    title: v.title,
+    thumbnail: v.thumbnailUrl
+      ? ({ uri: v.thumbnailUrl } as ImageSourcePropType)
+      : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
+    badgeLabel: "Featured",
+    badgeColor: "#2563EB",
+  }));
 
   return (
     <View style={styles.container}>
@@ -83,25 +51,24 @@ export function FeaturedVideosSection() {
         <Text style={styles.noDataText}>No featured videos available</Text>
       )}
 
-      {/* Videos Scroll */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        style={styles.scrollView}
-      >
-        {displayData.map((item) => (
-          <VideoCard
-            key={item.id}
-            imageSource={item.thumbnail}
-            title={item.title}
-            badgeLabel={item.badgeLabel}
-            badgeColor={item.badgeColor}
-            showBadge={true}
-            onPress={() => handleCardPress(item.id)}
-          />
-        ))}
-      </ScrollView>
+      {/* Videos Grid */}
+      {displayData.length > 0 && (
+        <View style={styles.grid}>
+          {displayData.map((item) => (
+            <View key={item.id} style={styles.cardWrapper}>
+              <VideoCard
+                imageSource={item.thumbnail}
+                title={item.title}
+                badgeLabel={item.badgeLabel}
+                badgeColor={item.badgeColor}
+                showBadge={true}
+                fitToContainer
+                onPress={() => handleCardPress(item.id)}
+              />
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -116,27 +83,33 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: spacing.md,
+    paddingHorizontal: spacing.xl,
   },
   title: {
     fontSize: dimensions.isTablet ? fs(24) : fs(20),
     fontFamily: FONTS.bold,
-    color: "#000000",
+    color: "#0F172A",
   },
   seeAllText: {
-    fontSize: dimensions.isTablet ? fs(16) : fs(14),
-    fontFamily: FONTS.medium,
-    color: "#666666",
+    fontSize: dimensions.isTablet ? fs(14) : fs(13),
+    fontFamily: FONTS.semibold,
+    color: "#475569",
   },
-  scrollView: {
-    marginLeft: 0,
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
-  scrollContent: {
-    paddingRight: 0,
+  cardWrapper: {
+    width: dimensions.isTablet ? "31.5%" : "47.5%",
   },
   noDataText: {
     fontSize: dimensions.isTablet ? fs(16) : fs(14),
     fontFamily: FONTS.regular,
-    color: "#666666",
+    color: "#94A3B8",
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
 });

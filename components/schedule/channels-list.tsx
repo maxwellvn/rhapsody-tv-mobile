@@ -1,76 +1,140 @@
 import { ChannelCard } from '@/components/schedule/channel-card';
+import { EmptyState } from '@/components/empty-state';
+import { useChannels } from '@/hooks/queries/useHomepageQueries';
 import { FONTS } from '@/styles/global';
-import { fs, hp } from '@/utils/responsive';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { borderRadius, dimensions, fs, spacing, wp } from '@/utils/responsive';
+import { useMemo } from 'react';
+import { ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 
-export function ScheduleChannelsList() {
-  const handleChannelPress = (channelName: string) => {
-    console.log('Channel pressed:', channelName);
-    // Navigation logic will go here
+type ScheduleChannelsListProps = {
+  selectedChannelSlug?: string;
+  onSelectChannel?: (slug: string) => void;
+};
+
+export function ScheduleChannelsList({
+  selectedChannelSlug,
+  onSelectChannel,
+}: ScheduleChannelsListProps) {
+  const { data: channels = [] } = useChannels(50);
+
+  const handleChannelPress = (slug: string) => {
+    onSelectChannel?.(slug);
   };
+
+  const displayChannels = useMemo(
+    () =>
+      channels.map((channel) => ({
+        slug: channel.slug,
+        name:
+          typeof channel.name === 'string' && channel.name.trim().length > 0
+            ? channel.name.trim()
+            : typeof channel.slug === 'string' && channel.slug.trim().length > 0
+              ? channel.slug.trim()
+              : 'Channel',
+        fallbackLogo: channel.logoUrl
+          ? ({ uri: channel.logoUrl } as ImageSourcePropType)
+          : (require('@/assets/logo/Logo.png') as ImageSourcePropType),
+        thumbnail: channel.coverImageUrl
+          ? ({ uri: channel.coverImageUrl } as ImageSourcePropType)
+          : channel.logoUrl
+            ? ({ uri: channel.logoUrl } as ImageSourcePropType)
+            : (require('@/assets/logo/Logo.png') as ImageSourcePropType),
+        thumbnailKey: `${channel.coverImageUrl || ''}|${channel.logoUrl || ''}`,
+        thumbnailResizeMode: (channel.coverImageUrl ? 'cover' : 'contain') as
+          | 'cover'
+          | 'contain',
+      })),
+    [channels],
+  );
 
   return (
     <View style={styles.container}>
       {/* Section Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Channels List</Text>
+        <Text style={styles.title}>Channels</Text>
+        <View style={styles.liveChip}>
+          <View style={styles.liveChipDot} />
+          <Text style={styles.liveChipText}>LIVE</Text>
+        </View>
       </View>
 
-      {/* Channels Scroll */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        style={styles.scrollView}
-      >
-        <ChannelCard
-          logoSource={require('@/assets/logo/Logo.png')}
-          channelName="Rhapsody TV"
-          isLive={true}
-          onPress={() => handleChannelPress('Rhapsody TV')}
+      {/* Channels Grid */}
+      {displayChannels.length === 0 ? (
+        <EmptyState
+          iconName="calendar-outline"
+          title="No channels available"
+          subtitle="When channels are available, their schedules will show here."
+          compact
         />
-        <ChannelCard
-          logoSource={require('@/assets/logo/logo-2.png')}
-          channelName="RORK TV"
-          isLive={true}
-          onPress={() => handleChannelPress('RORK TV')}
-        />
-        <ChannelCard
-          logoSource={require('@/assets/logo/logo-3.png')}
-          channelName="LingualTV"
-          isLive={true}
-          onPress={() => handleChannelPress('LingualTV')}
-        />
-        <ChannelCard
-          logoSource={require('@/assets/logo/logo-1.png')}
-          channelName="Rebroadcast Channel"
-          isLive={true}
-          onPress={() => handleChannelPress('Rebroadcast Channel')}
-        />
-      </ScrollView>
+      ) : (
+        <View style={styles.grid}>
+          {displayChannels.map((channel) => (
+            <View key={channel.slug} style={styles.cardWrapper}>
+              <ChannelCard
+                thumbnailSource={channel.thumbnail}
+                fallbackSource={channel.fallbackLogo}
+                finalFallbackSource={require('@/assets/logo/Logo.png')}
+                thumbnailKey={channel.thumbnailKey}
+                thumbnailResizeMode={channel.thumbnailResizeMode}
+                fallbackResizeMode="contain"
+                channelName={channel.name}
+                isLive={false}
+                isSelected={channel.slug === selectedChannelSlug}
+                fitToContainer
+                onPress={() => handleChannelPress(channel.slug)}
+              />
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: hp(10),
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: hp(12),
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: fs(22),
+    fontSize: dimensions.isTablet ? fs(24) : fs(20),
     fontFamily: FONTS.bold,
-    color: '#000000',
+    color: '#0F172A',
   },
-  scrollView: {
-    marginLeft: 0,
+  liveChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp(5),
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: wp(10),
+    paddingVertical: wp(4),
+    borderRadius: borderRadius.full,
   },
-  scrollContent: {
-    paddingRight: 0,
+  liveChipDot: {
+    width: wp(6),
+    height: wp(6),
+    borderRadius: wp(3),
+    backgroundColor: '#EF4444',
+  },
+  liveChipText: {
+    fontSize: fs(10),
+    fontFamily: FONTS.bold,
+    color: '#EF4444',
+    letterSpacing: 0.6,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: spacing.sm,
+  },
+  cardWrapper: {
+    width: dimensions.isTablet ? '23.5%' : '48%',
   },
 });

@@ -1,3 +1,4 @@
+import { AppSpinner } from "@/components/app-spinner";
 import { useChannelSchedule } from "@/hooks/queries/useChannelQueries";
 import { FONTS } from "@/styles/global";
 import { borderRadius, fs, hp, spacing, wp } from "@/utils/responsive";
@@ -13,7 +14,7 @@ export function ScheduleTab({ slug }: ScheduleTabProps) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#1A237E" />
+        <AppSpinner size="small" color="#1A237E" />
       </View>
     );
   }

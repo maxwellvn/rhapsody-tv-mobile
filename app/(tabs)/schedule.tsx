@@ -14,10 +14,11 @@ import { ChannelSchedule } from '@/types/api.types';
 import { borderRadius, fs, hp, platformValue, spacing, wp } from '@/utils/responsive';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -28,6 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ScheduleScreen() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [refreshing, setRefreshing] = useState(false);
   const {
     data: channels = [],
     refetch: refetchChannels,
@@ -39,10 +41,12 @@ export default function ScheduleScreen() {
       setSelectedChannelSlug(channels[0].slug);
     }
   }, [channels, selectedChannelSlug]);
-  const selectedChannelId = useMemo(
-    () => channels.find((channel) => channel.slug === selectedChannelSlug)?.id,
+  const selectedChannel = useMemo(
+    () => channels.find((channel) => channel.slug === selectedChannelSlug),
     [channels, selectedChannelSlug],
   );
+  const selectedChannelId = selectedChannel?.id;
+  const selectedChannelName = selectedChannel?.name;
   const { data: selectedChannelSubscription } =
     useChannelSubscriptionStatus(selectedChannelId);
   const selectedDateParam = useMemo(
@@ -57,6 +61,15 @@ export default function ScheduleScreen() {
   } = useChannelSchedule(selectedChannelSlug, selectedDateParam, 50);
   const [reminderState, setReminderState] = useState<Record<string, boolean>>({});
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchChannels(), refetchSchedule()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchChannels, refetchSchedule]);
+
   const handleTabPress = (tab: string) => {
     if (tab === 'Home') {
       router.push('/(tabs)');
@@ -70,6 +83,12 @@ export default function ScheduleScreen() {
   };
 
   const handleDateChange = (date: Date) => {
+    // Prevent navigating to past dates
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const dateStart = new Date(date);
+    dateStart.setHours(0, 0, 0, 0);
+    if (dateStart < todayStart) return;
     setSelectedDate(date);
   };
 
@@ -80,19 +99,25 @@ export default function ScheduleScreen() {
 
   const now = new Date();
   const isToday = isSameDay(selectedDate, now);
+  const isPastDate = !isToday && selectedDate < now;
   const currentHour = now.getHours();
 
   const visibleSchedule = useMemo(
     () =>
-      scheduleData.filter((slot) => {
-        const startHour = new Date(slot.startTime).getHours();
-        const endHour = new Date(slot.endTime).getHours();
-        if (!isToday) return true;
-        return (
-          endHour > currentHour ||
-          (endHour === currentHour && startHour <= currentHour)
-        );
-      }),
+      scheduleData
+        .filter((slot) => {
+          const startHour = new Date(slot.startTime).getHours();
+          const endHour = new Date(slot.endTime).getHours();
+          if (!isToday) return true;
+          return (
+            endHour > currentHour ||
+            (endHour === currentHour && startHour <= currentHour)
+          );
+        })
+        .sort(
+          (a, b) =>
+            new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+        ),
     [scheduleData, isToday, currentHour],
   );
   const visibleScheduleSignature = useMemo(
@@ -191,19 +216,25 @@ export default function ScheduleScreen() {
     });
 
   const getDurationLabel = (program: ChannelSchedule) => {
-    if (program.durationInMinutes && program.durationInMinutes > 0) {
-      const hours = program.durationInMinutes / 60;
-      return Number.isInteger(hours) ? `${hours} hrs` : `${hours.toFixed(1)} hrs`;
+    let minutes = program.durationInMinutes;
+    if (!minutes || minutes <= 0) {
+      minutes = Math.max(
+        0,
+        Math.round(
+          (new Date(program.endTime).getTime() - new Date(program.startTime).getTime()) /
+            (1000 * 60),
+        ),
+      );
     }
-    const diffMinutes = Math.max(
-      0,
-      Math.round(
-        (new Date(program.endTime).getTime() - new Date(program.startTime).getTime()) /
-          (1000 * 60),
-      ),
-    );
-    const hours = diffMinutes / 60;
-    return Number.isInteger(hours) ? `${hours} hrs` : `${hours.toFixed(1)} hrs`;
+    if (minutes < 60) {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    }
+    return `${hours} hr${hours !== 1 ? 's' : ''} ${remainingMinutes} min`;
   };
 
   const getReminderKey = (slot: ChannelSchedule) =>
@@ -275,10 +306,13 @@ export default function ScheduleScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         <ScheduleChannelsList
           selectedChannelSlug={selectedChannelSlug}
@@ -288,6 +322,7 @@ export default function ScheduleScreen() {
         <ScheduleHeader 
           selectedDate={selectedDate}
           onDateChange={handleDateChange}
+          channelName={selectedChannelName}
         />
         
         {/* Program Schedule List */}
@@ -306,13 +341,16 @@ export default function ScheduleScreen() {
             startHour <= currentHour &&
             currentHour < endHour;
           const isUpcoming = new Date(slot.startTime).getTime() > Date.now();
+          const isPast = isToday && new Date(slot.endTime).getTime() < Date.now();
           const reminderKey = getReminderKey(slot);
           const isReminderSet = reminderState[reminderKey] ?? false;
           const actionLabel = isCurrentHour
             ? 'Watch Now'
-            : isReminderSet
-              ? 'Reminder Set'
-              : 'Notify Me';
+            : isPast
+              ? ''
+              : isReminderSet
+                ? 'Reminder Set'
+                : 'Notify Me';
 
           return (
             <ScheduleProgramCard
@@ -324,8 +362,9 @@ export default function ScheduleScreen() {
               description={slot.description || ''}
               watchingCount={String(slot.viewerCount ?? 0)}
               isLive={isCurrentHour}
-              isActionActive={!isCurrentHour && isReminderSet}
+              isActionActive={!isCurrentHour && !isPast && isReminderSet}
               actionLabel={actionLabel}
+              hideAction={isPast}
               onPress={() => console.log('Program card pressed')}
               onWatchNowPress={() => {
                 if (isCurrentHour) {
@@ -336,7 +375,7 @@ export default function ScheduleScreen() {
                   );
                   return;
                 }
-                if (isUpcoming) {
+                if (!isPast) {
                   handleNotifyMePress(slot);
                 }
               }}

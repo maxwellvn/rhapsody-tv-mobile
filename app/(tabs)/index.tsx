@@ -1,13 +1,17 @@
 import { BottomNav } from "@/components/bottom-nav";
 import { ChannelsListSection } from "@/components/home/channels-list-section";
 import { useUnreadNotificationCount } from "@/hooks/queries/useNotificationQueries";
+import { homepageKeys } from "@/hooks/queries/useHomepageQueries";
 import { SearchBar } from "@/components/search-bar";
 import { styles } from "@/styles/home.styles";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useCallback, useState } from "react";
 import {
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
 } from "react-native";
@@ -16,7 +20,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const unreadCount = useUnreadNotificationCount();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.refetchQueries({ queryKey: homepageKeys.all });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
 
   const handleNotificationPress = () => {
     router.push("/notifications");
@@ -99,6 +114,9 @@ export default function HomeScreen() {
           { paddingHorizontal: 0 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         <ChannelsListSection />
       </ScrollView>

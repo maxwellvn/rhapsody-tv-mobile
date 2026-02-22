@@ -1,22 +1,24 @@
 import { AppSpinner } from "@/components/app-spinner";
 import { BottomNav } from "@/components/bottom-nav";
-import { DownloadedVideosItem } from "@/components/profile/downloaded-videos-item";
 import { ProfileInfo } from "@/components/profile/profile-info";
 import { ProfileSection } from "@/components/profile/profile-section";
 import { useAuth } from "@/context/AuthContext";
+import { offlineDownloadService } from "@/services/offline-download.service";
 import { userService } from "@/services/user.service";
+import { FONTS } from "@/styles/global";
 import {
     PaginatedWatchHistoryResponseDto,
     PaginatedWatchlistResponseDto,
     User,
 } from "@/types/api.types";
-import { hp, spacing, wp } from "@/utils/responsive";
+import { borderRadius, dimensions, fs, hp, spacing, wp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Image,
     Pressable,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -33,8 +35,12 @@ export default function ProfileScreen() {
     useState<PaginatedWatchHistoryResponseDto | null>(null);
   const [watchlist, setWatchlist] =
     useState<PaginatedWatchlistResponseDto | null>(null);
+  const [downloadedVideos, setDownloadedVideos] = useState<
+    Awaited<ReturnType<typeof offlineDownloadService.getDownloads>>
+  >([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const isMountedRef = useRef(true);
 
   const loadData = useCallback(async (showLoading: boolean = true) => {
@@ -44,10 +50,11 @@ export default function ProfileScreen() {
       }
       setError(null);
 
-      const [profileRes, historyRes, watchlistRes] = await Promise.all([
+      const [profileRes, historyRes, watchlistRes, downloads] = await Promise.all([
         userService.getProfile(),
         userService.getWatchHistory(1, 50),
         userService.getWatchlist(1, 50),
+        offlineDownloadService.getDownloads(),
       ]);
 
       if (!isMountedRef.current) return;
@@ -67,6 +74,7 @@ export default function ProfileScreen() {
       if (watchlistRes.success) {
         setWatchlist(watchlistRes.data);
       }
+      setDownloadedVideos(downloads);
     } catch (e: any) {
       if (!isMountedRef.current) return;
       setError(e?.message || "Failed to load profile data");
@@ -84,6 +92,15 @@ export default function ProfileScreen() {
     return () => {
       isMountedRef.current = false;
     };
+  }, [loadData]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadData(false);
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadData]);
 
   const handleNotificationPress = () => {
@@ -131,16 +148,67 @@ export default function ProfileScreen() {
     }
   };
 
+  const historyItems = (watchHistory?.items || [])
+    .filter((item) => !!item.video)
+    .map((item) => ({
+      imageSource: item.video?.thumbnailUrl
+        ? { uri: item.video.thumbnailUrl }
+        : require("@/assets/images/Image-4.png"),
+      title: item.video?.title || "Untitled Video",
+      badgeLabel: "History",
+      badgeColor: "#2563EB",
+      showBadge: true,
+      onPress: () =>
+        item.video?.id && router.push(`/video?id=${item.video.id}`),
+    }))
+    .slice(0, 4);
+
+  const watchlistItems = (watchlist?.items || [])
+    .filter((item) => !!item.video)
+    .map((item) => ({
+      imageSource: item.video?.thumbnailUrl
+        ? { uri: item.video.thumbnailUrl }
+        : require("@/assets/images/Image-1.png"),
+      title: item.video?.title || "Untitled Video",
+      badgeLabel: "Watchlist",
+      badgeColor: "#2563EB",
+      showBadge: true,
+      onPress: () =>
+        item.video?.id && router.push(`/video?id=${item.video.id}`),
+      onRemovePress: () =>
+        item.video?.id && handleRemoveFromWatchlist(item.video.id),
+    }))
+    .slice(0, 4);
+  const downloadedItems = downloadedVideos
+    .map((item) => ({
+      imageSource: item.thumbnailUrl
+        ? { uri: item.thumbnailUrl }
+        : require("@/assets/images/Image-4.png"),
+      title: item.title || "Untitled Video",
+      badgeLabel: "Downloaded",
+      badgeColor: "#2563EB",
+      showBadge: true,
+      onPress: () => item.videoId && router.push(`/video?id=${item.videoId}`),
+    }))
+    .slice(0, 4);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerSpacer} />
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerSubtitle}>Account, history and downloads</Text>
+        </View>
 
         <View style={styles.headerRight}>
-          <Pressable onPress={handleNotificationPress} hitSlop={8}>
+          <Pressable
+            onPress={handleNotificationPress}
+            hitSlop={8}
+            style={styles.iconButton}
+          >
             <Image
               source={require("@/assets/Icons/bells.png")}
               style={styles.headerIcon}
@@ -148,7 +216,11 @@ export default function ProfileScreen() {
             />
           </Pressable>
 
-          <Pressable onPress={handleSettingsPress} hitSlop={8}>
+          <Pressable
+            onPress={handleSettingsPress}
+            hitSlop={8}
+            style={styles.iconButton}
+          >
             <Image
               source={require("@/assets/Icons/settings.png")}
               style={styles.headerIcon}
@@ -162,6 +234,9 @@ export default function ProfileScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         <View style={styles.contentInner}>
           <ProfileInfo
@@ -169,12 +244,13 @@ export default function ProfileScreen() {
             gender={user?.gender}
             seed={user?.id || user?.fullName || user?.email || "guest-user"}
             name={user?.fullName || "Guest User"}
+            subtitle={user?.email || "Manage your account and saved videos"}
             onEditPress={handleEditProfile}
           />
 
           {loading && (
             <View style={styles.loadingContainer}>
-              <AppSpinner size="small" color="#000" />
+              <AppSpinner size="small" color="#2563EB" />
             </View>
           )}
 
@@ -184,48 +260,29 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {/* History Section */}
-          <ProfileSection
-            title="History"
-            onSeeAllPress={() => router.push("/watch-history")}
-            items={(watchHistory?.items || [])
-              .filter((item) => !!item.video)
-              .map((item) => ({
-                imageSource: item.video?.thumbnailUrl
-                  ? { uri: item.video.thumbnailUrl }
-                  : require("@/assets/images/Image-4.png"),
-                title: item.video?.title || "Untitled Video",
-                badgeLabel: "History",
-                badgeColor: "#2563EB",
-                showBadge: true,
-                onPress: () =>
-                  item.video?.id && router.push(`/video?id=${item.video.id}`),
-              }))}
-          />
+          {!loading && (
+            <>
+              {/* History Section */}
+              <ProfileSection
+                title="History"
+                onSeeAllPress={() => router.push("/watch-history")}
+                items={historyItems}
+              />
 
-          {/* Watchlist Section */}
-          <ProfileSection
-            title="Watchlist"
-            onSeeAllPress={() => router.push("/watchlist")}
-            items={(watchlist?.items || [])
-              .filter((item) => !!item.video)
-              .map((item) => ({
-                imageSource: item.video?.thumbnailUrl
-                  ? { uri: item.video.thumbnailUrl }
-                  : require("@/assets/images/Image-1.png"),
-                title: item.video?.title || "Untitled Video",
-                badgeLabel: "Watchlist",
-                badgeColor: "#2563EB",
-                showBadge: true,
-                onPress: () =>
-                  item.video?.id && router.push(`/video?id=${item.video.id}`),
-                onRemovePress: () =>
-                  item.video?.id && handleRemoveFromWatchlist(item.video.id),
-              }))}
-          />
+              {/* Watchlist Section */}
+              <ProfileSection
+                title="Watchlist"
+                onSeeAllPress={() => router.push("/watchlist")}
+                items={watchlistItems}
+              />
 
-          {/* Downloaded Videos */}
-          <DownloadedVideosItem onPress={handleDownloadedVideos} />
+              <ProfileSection
+                title="Downloaded Videos"
+                onSeeAllPress={handleDownloadedVideos}
+                items={downloadedItems}
+              />
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -242,28 +299,51 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingHorizontal: spacing.xl,
-    paddingVertical: hp(12),
+    paddingTop: hp(10),
+    paddingBottom: hp(8),
   },
-  headerSpacer: {
+  headerLeft: {
     flex: 1,
+  },
+  headerTitle: {
+    fontSize: dimensions.isTablet ? fs(28) : fs(24),
+    fontFamily: FONTS.bold,
+    color: "#0F172A",
+  },
+  headerSubtitle: {
+    marginTop: hp(2),
+    fontSize: fs(12),
+    fontFamily: FONTS.regular,
+    color: "#64748B",
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.lg,
+    gap: spacing.sm,
+    marginTop: hp(2),
+  },
+  iconButton: {
+    width: wp(36),
+    height: wp(36),
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerIcon: {
-    width: wp(20),
-    height: hp(20),
-    tintColor: "#000000",
+    width: wp(18),
+    height: hp(18),
+    tintColor: "#475569",
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: hp(110),
+    paddingBottom: hp(120),
   },
   contentInner: {
     width: "100%",
@@ -271,15 +351,28 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   loadingContainer: {
-    paddingVertical: hp(8),
+    marginTop: hp(14),
+    marginHorizontal: spacing.xl,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    backgroundColor: "#F8FAFC",
+    paddingVertical: hp(16),
     alignItems: "center",
   },
   errorContainer: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: hp(8),
+    marginTop: hp(14),
+    marginHorizontal: spacing.xl,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    borderRadius: 14,
+    backgroundColor: "#FEF2F2",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: hp(12),
   },
   errorText: {
     color: "#DC2626",
-    fontSize: 14,
+    fontSize: fs(13),
+    fontFamily: FONTS.medium,
   },
 });
