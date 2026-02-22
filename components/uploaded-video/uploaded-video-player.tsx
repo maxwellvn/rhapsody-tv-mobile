@@ -10,8 +10,10 @@ import {
   BackHandler,
   Image,
   ImageSourcePropType,
+  Modal,
   Platform,
   Pressable,
+  StatusBar,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -53,15 +55,8 @@ export function UploadedVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [hasEnded, setHasEnded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const fullscreenFrameStyle = isFullscreen
-    ? {
-        position: "absolute" as const,
-        top: 0,
-        left: 0,
-        width: windowWidth,
-        height: windowHeight,
-      }
-    : null;
+
+  const [needsInitialSeek, setNeedsInitialSeek] = useState(initialPositionSeconds > 0);
 
   const scrubRafRef = useRef<number | null>(null);
   const pendingScrubTimeRef = useRef<number | null>(null);
@@ -80,6 +75,7 @@ export function UploadedVideoPlayer({
     setIsPlaying(false);
     completedRef.current = false;
     didApplyInitialPositionRef.current = false;
+    setNeedsInitialSeek(initialPositionSeconds > 0);
   }, [videoUri]);
 
   useEffect(() => {
@@ -166,7 +162,24 @@ export function UploadedVideoPlayer({
         setStableCurrentTime(initialPositionSeconds);
         setSliderTime(initialPositionSeconds);
       } catch {
-        // no-op
+        // Retry once after a brief delay — production HLS streams may need time
+        try {
+          await new Promise((r) => setTimeout(r, 300));
+          await videoRef.current?.setPositionAsync(Math.floor(initialPositionSeconds * 1000));
+          setStableCurrentTime(initialPositionSeconds);
+          setSliderTime(initialPositionSeconds);
+        } catch {
+          // no-op
+        }
+      }
+      // Now that position is set, allow playback to start
+      setNeedsInitialSeek(false);
+      if (!paused) {
+        try {
+          await videoRef.current.playAsync();
+        } catch {
+          // no-op
+        }
       }
     }
 
@@ -316,128 +329,144 @@ export function UploadedVideoPlayer({
     setIsScrubbing(false);
   };
 
-  return (
-    <View
-      style={[
-        styles.container,
-        { height: isFullscreen ? undefined : playerHeight },
-        Platform.OS === "android" && styles.containerAndroid,
-        isFullscreen && styles.fullscreenContainer,
-        fullscreenFrameStyle,
-      ]}
-    >
-      {videoUri ? (
-        <>
-          <Video
-            ref={videoRef}
-            source={{ uri: videoUri }}
-            style={styles.video}
-            resizeMode={ResizeMode.CONTAIN}
-            shouldPlay={!paused}
-            isLooping={false}
-            isMuted={isMuted}
-            useNativeControls={false}
-            onLoadStart={() => {
-              setIsLoading(true);
-              startLoadingGuard();
-            }}
-            onLoad={handleLoad}
-            onReadyForDisplay={stopLoadingGuard}
-            onError={stopLoadingGuard}
-            onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-          />
+  const playerContent = videoUri ? (
+    <>
+      <Video
+        ref={videoRef}
+        source={{ uri: videoUri }}
+        style={styles.video}
+        resizeMode={ResizeMode.CONTAIN}
+        shouldPlay={!paused && !needsInitialSeek}
+        isLooping={false}
+        isMuted={isMuted}
+        useNativeControls={false}
+        onLoadStart={() => {
+          setIsLoading(true);
+          startLoadingGuard();
+        }}
+        onLoad={handleLoad}
+        onReadyForDisplay={stopLoadingGuard}
+        onError={stopLoadingGuard}
+        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+      />
 
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <AppSpinner size="large" color="#FFFFFF" />
-            </View>
-          )}
-
-          <View
-            style={[
-              styles.overlay,
-              {
-                paddingTop: spacing.sm + (isFullscreen ? insets.top : 0),
-                paddingLeft: spacing.sm + (isFullscreen ? insets.left : 0),
-                paddingRight: spacing.sm + (isFullscreen ? insets.right : 0),
-                paddingBottom: spacing.sm + (isFullscreen ? insets.bottom : 0),
-              },
-            ]}
-            pointerEvents="box-none"
-          >
-            <LinearGradient
-              colors={["rgba(0,0,0,0.65)", "transparent"]}
-              style={styles.topGradient}
-              pointerEvents="none"
-            />
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.65)"]}
-              style={styles.bottomGradient}
-              pointerEvents="none"
-            />
-
-            <View style={styles.topControls}>
-              <View />
-              <View style={styles.rightControls}>
-                <Pressable onPress={handleToggleMute} style={styles.controlButton}>
-                  <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={18} color="white" />
-                </Pressable>
-                {onMinimize && (
-                  <Pressable onPress={onMinimize} style={styles.controlButton}>
-                    <Ionicons name="close-outline" size={20} color="white" />
-                  </Pressable>
-                )}
-                <Pressable onPress={handleToggleFullscreen} style={styles.controlButton}>
-                  <Ionicons
-                    name={isFullscreen ? "contract-outline" : "expand-outline"}
-                    size={18}
-                    color="white"
-                  />
-                </Pressable>
-              </View>
-            </View>
-
-            <View style={styles.centerControls}>
-              <View style={styles.transportControls}>
-                <Pressable onPress={() => handleSeekBy(-10)} style={styles.controlButton}>
-                  <Ionicons name="play-back" size={18} color="white" />
-                </Pressable>
-                <Pressable onPress={handleTogglePlay} style={styles.playButton}>
-                  <Ionicons name={hasEnded ? "refresh" : isPlaying ? "pause" : "play"} size={24} color="white" />
-                </Pressable>
-                <Pressable onPress={() => handleSeekBy(10)} style={styles.controlButton}>
-                  <Ionicons name="play-forward" size={18} color="white" />
-                </Pressable>
-              </View>
-            </View>
-
-            <View style={styles.bottomControls}>
-              <View style={styles.seekRow}>
-                <Text style={styles.timeText}>{formatTime(displayedTime)}</Text>
-                <View
-                  style={styles.seekTouchArea}
-                  onLayout={(e) => setSeekBarWidth(e.nativeEvent.layout.width)}
-                  onStartShouldSetResponder={() => true}
-                  onMoveShouldSetResponder={() => true}
-                  onResponderGrant={(e) => handleScrubStart(e.nativeEvent.locationX)}
-                  onResponderMove={(e) => handleScrubMove(e.nativeEvent.locationX)}
-                  onResponderRelease={(e) => handleScrubEnd(e.nativeEvent.locationX)}
-                  onResponderTerminate={() => handleScrubEnd()}
-                >
-                  <View style={styles.seekTrack}>
-                    <View style={[styles.seekFill, { width: `${displayedRatio * 100}%` }]} />
-                  </View>
-                  <View style={[styles.seekThumb, { left: seekThumbLeft }]} />
-                </View>
-                <Text style={styles.timeText}>{formatTime(duration)}</Text>
-              </View>
-            </View>
-          </View>
-        </>
-      ) : (
-        <Image source={thumbnailSource} style={styles.thumbnail} resizeMode="contain" />
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <AppSpinner size="large" color="#FFFFFF" />
+        </View>
       )}
-    </View>
+
+      <View
+        style={[
+          styles.overlay,
+          {
+            paddingTop: spacing.sm + (isFullscreen ? insets.top : 0),
+            paddingLeft: spacing.sm + (isFullscreen ? insets.left : 0),
+            paddingRight: spacing.sm + (isFullscreen ? insets.right : 0),
+            paddingBottom: spacing.sm + (isFullscreen ? insets.bottom : 0),
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        <LinearGradient
+          colors={["rgba(0,0,0,0.65)", "transparent"]}
+          style={styles.topGradient}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.65)"]}
+          style={styles.bottomGradient}
+          pointerEvents="none"
+        />
+
+        <View style={styles.topControls}>
+          <View />
+          <View style={styles.rightControls}>
+            <Pressable onPress={handleToggleMute} style={styles.controlButton}>
+              <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={18} color="white" />
+            </Pressable>
+            {onMinimize && (
+              <Pressable onPress={onMinimize} style={styles.controlButton}>
+                <Ionicons name="close-outline" size={20} color="white" />
+              </Pressable>
+            )}
+            <Pressable onPress={handleToggleFullscreen} style={styles.controlButton}>
+              <Ionicons
+                name={isFullscreen ? "contract-outline" : "expand-outline"}
+                size={18}
+                color="white"
+              />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.centerControls}>
+          <View style={styles.transportControls}>
+            <Pressable onPress={() => handleSeekBy(-10)} style={styles.controlButton}>
+              <Ionicons name="play-back" size={18} color="white" />
+            </Pressable>
+            <Pressable onPress={handleTogglePlay} style={styles.playButton}>
+              <Ionicons name={hasEnded ? "refresh" : isPlaying ? "pause" : "play"} size={24} color="white" />
+            </Pressable>
+            <Pressable onPress={() => handleSeekBy(10)} style={styles.controlButton}>
+              <Ionicons name="play-forward" size={18} color="white" />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.bottomControls}>
+          <View style={styles.seekRow}>
+            <Text style={styles.timeText}>{formatTime(displayedTime)}</Text>
+            <View
+              style={styles.seekTouchArea}
+              onLayout={(e) => setSeekBarWidth(e.nativeEvent.layout.width)}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={(e) => handleScrubStart(e.nativeEvent.locationX)}
+              onResponderMove={(e) => handleScrubMove(e.nativeEvent.locationX)}
+              onResponderRelease={(e) => handleScrubEnd(e.nativeEvent.locationX)}
+              onResponderTerminate={() => handleScrubEnd()}
+            >
+              <View style={styles.seekTrack}>
+                <View style={[styles.seekFill, { width: `${displayedRatio * 100}%` }]} />
+              </View>
+              <View style={[styles.seekThumb, { left: seekThumbLeft }]} />
+            </View>
+            <Text style={styles.timeText}>{formatTime(duration)}</Text>
+          </View>
+        </View>
+      </View>
+    </>
+  ) : (
+    <Image source={thumbnailSource} style={styles.thumbnail} resizeMode="contain" />
+  );
+
+  return (
+    <>
+      {!isFullscreen && (
+        <View
+          style={[
+            styles.container,
+            { height: playerHeight },
+            Platform.OS === "android" && styles.containerAndroid,
+          ]}
+        >
+          {playerContent}
+        </View>
+      )}
+      <Modal
+        visible={isFullscreen}
+        animationType="fade"
+        supportedOrientations={["landscape-left", "landscape-right", "portrait"]}
+        statusBarTranslucent
+        onRequestClose={handleToggleFullscreen}
+      >
+        <StatusBar hidden />
+        <View style={styles.fullscreenContainer}>
+          {playerContent}
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -455,10 +484,8 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   fullscreenContainer: {
-    overflow: "hidden",
+    flex: 1,
     backgroundColor: "#000000",
-    zIndex: 9999,
-    elevation: 9999,
   },
   video: {
     width: "100%",

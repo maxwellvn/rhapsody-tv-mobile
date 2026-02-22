@@ -218,7 +218,7 @@ export default function LiveVideoScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
         <StatusBar style="light" />
 
         {/* Video Player - Always Visible */}

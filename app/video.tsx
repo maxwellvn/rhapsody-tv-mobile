@@ -492,7 +492,7 @@ export default function VideoScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
         <StatusBar style="light" />
 
         {/* Uploaded Video Player - No Live badge, No cast button */}
