@@ -5,7 +5,6 @@ import { router } from "expo-router";
 import {
   ImageSourcePropType,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -16,69 +15,41 @@ import { VideoCard } from "./video-card";
 export function ProgramsSection() {
   const { data: programsData = [], isLoading } = usePrograms(10);
 
-  const handleCardPress = (programId: string, videoId: string) => {
-    if (videoId) {
-      router.push(`/video?id=${videoId}`);
-    } else {
-      router.push(`/program-profile?id=${programId}`);
-    }
+  const handleCardPress = (
+    programId: string,
+    channelId?: string,
+    channelSlug?: string,
+  ) => {
+    router.push(
+      `/program-profile?id=${programId}&channelId=${channelId || ""}&channelSlug=${channelSlug || ""}`,
+    );
   };
 
   const handleSeeAllPress = () => {
-    router.push("/(tabs)/discover");
+    router.push("/programs");
   };
-
-  // Mock data for fallback
-  const mockData = [
-    {
-      id: "mock-1",
-      videoId: "mock-video-1",
-      title: "Rhapsody Dailies",
-      coverImageUrl: require("@/assets/images/Image-4.png"),
-      badgeLabel: "Series",
-      badgeColor: "#2563EB",
-      isLive: false,
-    },
-    {
-      id: "mock-2",
-      videoId: "mock-video-2",
-      title: "Rhapsody On The Daily Frontier",
-      coverImageUrl: require("@/assets/images/Image-1.png"),
-      badgeLabel: "New",
-      badgeColor: "#2563EB",
-      isLive: false,
-    },
-    {
-      id: "mock-3",
-      videoId: "mock-video-3",
-      title: "The Day God Spoke My Language",
-      coverImageUrl: require("@/assets/images/Image-5.png"),
-      badgeLabel: "Live",
-      badgeColor: "#DC2626",
-      isLive: true,
-    },
-  ];
 
   // Show loading state with skeleton
   if (isLoading) {
     return <ProgramsSkeleton />;
   }
 
-  // Show mock data if no programs data available
-  const displayData =
-    programsData.length > 0
-      ? programsData.map((program) => ({
-        id: program.id,
-        videoId: program.videoId,
-        title: program.title,
-        coverImageUrl: program.channel.coverImageUrl
+  const displayData = programsData
+    .filter((program) => (program.videoCount ?? 0) > 0)
+    .map((program) => ({
+      id: program.id,
+      channelId: program.channel?.id,
+      channelSlug: program.channel?.slug,
+      title: program.title,
+      coverImageUrl: program.thumbnailUrl
+        ? ({ uri: program.thumbnailUrl } as ImageSourcePropType)
+        : program.channel?.coverImageUrl
           ? ({ uri: program.channel.coverImageUrl } as ImageSourcePropType)
           : (require("@/assets/images/Image-4.png") as ImageSourcePropType),
-        badgeLabel: program.isLive ? "Live" : "Series",
-        badgeColor: program.isLive ? "#DC2626" : "#2563EB",
-        isLive: program.isLive,
-      }))
-      : mockData;
+      badgeLabel: program.isLive ? "Live" : "Series",
+      badgeColor: program.isLive ? "#DC2626" : "#2563EB",
+      isLive: program.isLive,
+    }));
 
   return (
     <View style={styles.container}>
@@ -89,29 +60,34 @@ export function ProgramsSection() {
           <Text style={styles.seeAllText}>See all</Text>
         </Pressable>
       </View>
-      {programsData.length === 0 && (
+      {displayData.length === 0 && (
         <Text style={styles.noDataText}>No programs available</Text>
       )}
 
-      {/* Videos Scroll */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        style={styles.scrollView}
-      >
-        {displayData.map((program) => (
-          <VideoCard
-            key={program.id}
-            imageSource={program.coverImageUrl}
-            title={program.title}
-            badgeLabel={program.badgeLabel}
-            badgeColor={program.badgeColor}
-            showBadge={true}
-            onPress={() => handleCardPress(program.id, program.videoId)}
-          />
-        ))}
-      </ScrollView>
+      {/* Programs Grid */}
+      {displayData.length > 0 && (
+        <View style={styles.grid}>
+          {displayData.map((program) => (
+            <View key={program.id} style={styles.cardWrapper}>
+              <VideoCard
+                imageSource={program.coverImageUrl}
+                title={program.title}
+                badgeLabel={program.badgeLabel}
+                badgeColor={program.badgeColor}
+                showBadge={true}
+                fitToContainer
+                onPress={() =>
+                  handleCardPress(
+                    program.id,
+                    program.channelId,
+                    program.channelSlug,
+                  )
+                }
+              />
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -126,27 +102,33 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: spacing.md,
+    paddingHorizontal: spacing.xl,
   },
   title: {
     fontSize: dimensions.isTablet ? fs(24) : fs(20),
     fontFamily: FONTS.bold,
-    color: "#000000",
+    color: "#0F172A",
   },
   seeAllText: {
-    fontSize: dimensions.isTablet ? fs(16) : fs(14),
-    fontFamily: FONTS.medium,
-    color: "#666666",
+    fontSize: dimensions.isTablet ? fs(14) : fs(13),
+    fontFamily: FONTS.semibold,
+    color: "#475569",
   },
-  scrollView: {
-    marginLeft: 0,
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
-  scrollContent: {
-    paddingRight: 0,
+  cardWrapper: {
+    width: dimensions.isTablet ? "31.5%" : "47.5%",
   },
   noDataText: {
     fontSize: dimensions.isTablet ? fs(16) : fs(14),
     fontFamily: FONTS.regular,
-    color: "#666666",
+    color: "#94A3B8",
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
 });
