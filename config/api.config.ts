@@ -159,4 +159,12 @@ export const API_ENDPOINTS = {
     WATCH_LIVESTREAM: (livestreamId: string) =>
       `/homepage/watch-livestream/${livestreamId}`,
   },
+
+  // Donations
+  DONATIONS: {
+    PAYMENT_INTENT: "/donations/payment-intent",
+    CONFIRM: (id: string) => `/donations/${id}/confirm`,
+    ESPEES: "/donations/espees",
+    MY: "/donations/my",
+  },
 } as const;

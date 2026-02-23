@@ -43,6 +43,10 @@ export default function SettingsScreen() {
     router.push('/about');
   };
 
+  const handleDonate = () => {
+    router.push('/donate');
+  };
+
   const handleSignOut = () => {
     logout();
   };
@@ -106,6 +110,16 @@ export default function SettingsScreen() {
               icon={require('@/assets/Icons/download.png')}
               label="Downloads"
               onPress={handleDownloads}
+            />
+          </SettingsSection>
+
+          {/* Support */}
+          <SettingsSection>
+            <SettingsTitle title="Support" />
+            <SettingsItem
+              icon={require('@/assets/Icons/info.png')}
+              label="Donate"
+              onPress={handleDonate}
             />
           </SettingsSection>
 
