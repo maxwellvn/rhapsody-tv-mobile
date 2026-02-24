@@ -192,6 +192,7 @@ export default function ScheduleScreen() {
             slotId: slot.id,
             title: slot.title,
             startTime: slot.startTime,
+            endTime: slot.endTime,
           });
 
           if (result.scheduled) {
@@ -246,6 +247,7 @@ export default function ScheduleScreen() {
         slotId: slot.id,
         title: slot.title,
         startTime: slot.startTime,
+        endTime: slot.endTime,
       });
 
       setReminderState((prev) => ({

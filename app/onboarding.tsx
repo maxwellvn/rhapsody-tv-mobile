@@ -1,9 +1,9 @@
 import { Button } from '@/components/button';
-import { styles } from '@/styles/onboarding.styles';
+import { createOnboardingStyles } from '@/styles/onboarding.styles';
 import { wp, MAX_PHONE_WIDTH } from '@/utils/responsive';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
   Image,
@@ -30,6 +30,9 @@ export default function OnboardingScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const currentIndexRef = useRef(0);
 
+  // Recalculate styles when dimensions change (fold/unfold)
+  const styles = useMemo(() => createOnboardingStyles(), [rawScreenWidth]);
+
   // Calculate card width and spacing for perfect centering
   const cardWidth = screenWidth - wp(80);
   const cardSpacing = wp(20);
@@ -40,7 +43,7 @@ export default function OnboardingScreen() {
   useEffect(() => {
     const timer = setInterval(() => {
       currentIndexRef.current = (currentIndexRef.current + 1) % carouselData.length;
-      
+
       // Scroll to next image
       scrollViewRef.current?.scrollTo({
         x: currentIndexRef.current * snapInterval,
@@ -68,9 +71,9 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar style="light" />
-      
+
       {/* Skip Button */}
       <Button
         onPress={handleSkip}

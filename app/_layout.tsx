@@ -11,7 +11,7 @@ import { Href, router, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { LogBox } from 'react-native';
+import { Linking, LogBox } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -20,7 +20,6 @@ import '../global.css';
 LogBox.ignoreLogs(['expo-notifications: Android Push notifications']);
 
 import { GlobalMiniPlayer } from '@/components/GlobalMiniPlayer';
-import { GlobalLoader } from '@/components/global-loader';
 import { AppProvider } from '@/context/AppProvider';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/queries/useNotificationQueries';
@@ -111,7 +110,8 @@ function NotificationRuntimeSync() {
       if (
         item.type === 'channel_new_video' ||
         item.type === 'channel_go_live' ||
-        item.type === 'channel_new_program'
+        item.type === 'channel_new_program' ||
+        item.type === 'custom'
       ) {
         return true;
       }
@@ -153,6 +153,9 @@ function NotificationRuntimeSync() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const segments = useSegments();
+  const pendingNotificationRouteRef = useRef<Href | null>(null);
+  const hasAppliedPendingRouteRef = useRef(false);
 
   const [loaded, error] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -212,6 +215,17 @@ export default function RootLayout() {
     const resolveRouteFromPayload = (payload: Record<string, unknown>): Href => {
       const isLikelyObjectId = (value?: string) =>
         !!value && /^[a-fA-F0-9]{24}$/.test(value);
+
+      // Handle custom notification action types
+      const actionType = typeof payload.actionType === 'string' ? payload.actionType : undefined;
+      if (actionType === 'external_url' && typeof payload.actionUrl === 'string') {
+        Linking.openURL(payload.actionUrl).catch(() => {});
+        return ('/(tabs)' as Href);
+      }
+      if (actionType === 'open_app') {
+        return ('/(tabs)' as Href);
+      }
+
       const videoId = pickStringFromPayload(payload, [
         ['videoId'],
         ['video', 'id'],
@@ -254,7 +268,8 @@ export default function RootLayout() {
         } as Href);
       }
       if (channelSlug) return ('/(tabs)' as Href);
-      if (type === 'program_reminder') return ('/(tabs)/schedule' as Href);
+      if (type === 'program_reminder' || type === 'channel_new_schedule')
+        return ('/(tabs)/schedule' as Href);
       return ('/notifications' as Href);
     };
 
@@ -262,19 +277,26 @@ export default function RootLayout() {
       response: {
         notification: { request: { content: { data: unknown } } };
       } | null,
+      isColdStart: boolean = false,
     ) => {
       if (!response) return;
       const payload = response.notification.request.content.data as
         | Record<string, unknown>
         | undefined;
       if (!payload) return;
-      router.push(resolveRouteFromPayload(payload));
+      const route = resolveRouteFromPayload(payload);
+      if (isColdStart) {
+        // Defer navigation: splash/auth flow will overwrite immediate router.push
+        pendingNotificationRouteRef.current = route;
+      } else {
+        router.push(route);
+      }
     };
 
     void import('expo-notifications')
       .then((Notifications) => {
         Notifications.getLastNotificationResponseAsync()
-          .then((response) => navigateFromResponse(response as any))
+          .then((response) => navigateFromResponse(response as any, true))
           .catch(() => null);
 
         const subscription =
@@ -292,6 +314,24 @@ export default function RootLayout() {
       if (cleanup) cleanup();
     };
   }, []);
+
+  // Apply pending notification navigation after initial auth/splash routing settles.
+  // Cold-start notification routes are deferred because router.push during the
+  // splash/auth flow gets overwritten by router.replace("/(tabs)").
+  useEffect(() => {
+    if (hasAppliedPendingRouteRef.current) return;
+    if (!pendingNotificationRouteRef.current) return;
+
+    const root = segments[0];
+    if (root === '(tabs)') {
+      hasAppliedPendingRouteRef.current = true;
+      const route = pendingNotificationRouteRef.current;
+      pendingNotificationRouteRef.current = null;
+      setTimeout(() => {
+        router.push(route);
+      }, 300);
+    }
+  }, [segments]);
 
   if (!loaded && !error) {
     return null;
@@ -325,7 +365,6 @@ export default function RootLayout() {
             <Stack.Screen name="watch-history" options={{ headerShown: false }} />
             <Stack.Screen name="watchlist" options={{ headerShown: false }} />
           </Stack>
-          <GlobalLoader />
           <GlobalMiniPlayer />
           <StatusBar style="auto" />
         </ThemeProvider>

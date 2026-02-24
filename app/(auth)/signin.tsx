@@ -68,7 +68,11 @@ export default function AuthScreen() {
   const isSubmitting = isLoading || isKingsChatLoading;
 
   const handleBack = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/onboarding");
+    }
   };
 
   const animateToTab = (nextTab: AuthTab) => {
@@ -462,7 +466,7 @@ export default function AuthScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <StatusBar style="light" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

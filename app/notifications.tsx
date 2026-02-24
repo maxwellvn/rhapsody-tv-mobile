@@ -11,6 +11,7 @@ import { styles } from "@/styles/notifications.styles";
 import { NotificationDto } from "@/types/api.types";
 import { formatRelativeTime } from "@/utils/formatters";
 import { Href, router, Stack } from "expo-router";
+import { Linking } from "react-native";
 import { useCallback, useMemo, useState } from "react";
 import {
     Alert,
@@ -109,8 +110,21 @@ export default function NotificationsScreen() {
   const isLikelyObjectId = (value?: string) =>
     !!value && /^[a-fA-F0-9]{24}$/.test(value);
 
-  const resolveNotificationRoute = (notification: NotificationDto): Href => {
+  const resolveNotificationRoute = (notification: NotificationDto): Href | { __externalUrl: string } => {
     const data = notification.data as Record<string, unknown> | undefined;
+
+    // Handle custom notification action types
+    if (notification.type === "custom" && data?.actionType) {
+      const actionType = data.actionType as string;
+      if (actionType === "external_url" && typeof data.actionUrl === "string") {
+        return { __externalUrl: data.actionUrl };
+      }
+      if (actionType === "open_app") {
+        return "/notifications";
+      }
+      // For channel/program/video/livestream, fall through to existing resolution
+    }
+
     const videoId = pickStringFromData(data, [
       ["videoId"],
       ["video", "id"],
@@ -157,7 +171,8 @@ export default function NotificationsScreen() {
     if (
       notification.type === "channel_go_live" ||
       notification.type === "channel_new_video" ||
-      notification.type === "channel_new_program"
+      notification.type === "channel_new_program" ||
+      notification.type === "channel_new_schedule"
     ) {
       return "/(tabs)/schedule";
     }
@@ -175,8 +190,15 @@ export default function NotificationsScreen() {
     }
 
     const route = resolveNotificationRoute(notification);
+
+    // Handle external URL
+    if (route && typeof route === "object" && "__externalUrl" in route) {
+      Linking.openURL(route.__externalUrl).catch(() => {});
+      return;
+    }
+
     if (route !== "/notifications") {
-      router.push(route);
+      router.push(route as Href);
     }
   };
 
@@ -322,7 +344,6 @@ export default function NotificationsScreen() {
         </View>
 
         {(isLoading ||
-          isFetching ||
           isMarkingAll ||
           isMarkingRead ||
           isDeletingNotification) && (

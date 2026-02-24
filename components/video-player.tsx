@@ -53,11 +53,15 @@ export function VideoPlayer({
   const [duration, setDuration] = useState(0);
   const [hasEnded, setHasEnded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrubRafRef = useRef<number | null>(null);
   const pendingScrubTimeRef = useRef<number | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<Video>(null);
+  const LIVE_EDGE_BUFFER_SECONDS = 1.5;
+  const LIVE_EDGE_BEHIND_THRESHOLD_SECONDS = 4;
 
   usePlaybackKeepAwake(Boolean(videoUri) && isPlaying && !paused);
 
@@ -77,6 +81,33 @@ export function VideoPlayer({
     });
   }, [paused]);
 
+  const resetControlsTimer = () => {
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => {
+      if (isPlaying) setControlsVisible(false);
+    }, 3000);
+  };
+
+  const toggleControls = () => {
+    if (controlsVisible) {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+      setControlsVisible(false);
+    } else {
+      setControlsVisible(true);
+      resetControlsTimer();
+    }
+  };
+
+  // Auto-hide controls when playback starts
+  useEffect(() => {
+    if (isPlaying) {
+      resetControlsTimer();
+    } else {
+      setControlsVisible(true);
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    }
+  }, [isPlaying]);
+
   useEffect(() => {
     return () => {
       if (scrubRafRef.current !== null) {
@@ -86,6 +117,7 @@ export function VideoPlayer({
         clearTimeout(loadTimeoutRef.current);
         loadTimeoutRef.current = null;
       }
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, []);
 
@@ -208,6 +240,8 @@ export function VideoPlayer({
   const displayedTime = isScrubbing ? sliderTime : stableCurrentTime;
   const displayedRatio = duration > 0 ? Math.max(0, Math.min(1, displayedTime / duration)) : 0;
   const seekThumbLeft = seekBarWidth > 0 ? Math.max(0, displayedRatio * seekBarWidth - 7) : 0;
+  const liveBehindSeconds = isLive && duration > 0 ? Math.max(0, duration - stableCurrentTime) : 0;
+  const isBehindLive = isLive && duration > 0 && liveBehindSeconds > LIVE_EDGE_BEHIND_THRESHOLD_SECONDS;
 
   const formatTime = (timeInSeconds: number) => {
     const totalSeconds = Math.max(0, Math.floor(timeInSeconds));
@@ -272,6 +306,26 @@ export function VideoPlayer({
     setIsScrubbing(false);
   };
 
+  const handleGoLive = async () => {
+    if (!videoRef.current || !isLive || duration <= 0) return;
+
+    const targetTime = Math.max(0, duration - LIVE_EDGE_BUFFER_SECONDS);
+
+    try {
+      await videoRef.current.setPositionAsync(Math.floor(targetTime * 1000));
+      if (!paused) {
+        await videoRef.current.playAsync();
+      }
+      setStableCurrentTime(targetTime);
+      setSliderTime(targetTime);
+      setHasEnded(false);
+      setControlsVisible(true);
+      resetControlsTimer();
+    } catch {
+      // no-op
+    }
+  };
+
   const playerContent = videoUri ? (
     <>
       <Video
@@ -299,7 +353,7 @@ export function VideoPlayer({
         </View>
       )}
 
-      <View
+      <Pressable
         style={[
           styles.overlay,
           {
@@ -309,99 +363,114 @@ export function VideoPlayer({
             paddingBottom: spacing.sm + (isFullscreen ? insets.bottom : 0),
           },
         ]}
-        pointerEvents="box-none"
+        onPress={toggleControls}
       >
-        <LinearGradient
-          colors={["rgba(0,0,0,0.65)", "transparent"]}
-          style={styles.topGradient}
-          pointerEvents="none"
-        />
-        <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.65)"]}
-          style={styles.bottomGradient}
-          pointerEvents="none"
-        />
+        {controlsVisible && (
+          <>
+            <LinearGradient
+              colors={["rgba(0,0,0,0.65)", "transparent"]}
+              style={styles.topGradient}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.65)"]}
+              style={styles.bottomGradient}
+              pointerEvents="none"
+            />
 
-        <View style={styles.topControls}>
-          {isLive ? (
-            <View style={styles.liveBadgeContainer}>
-              <Badge label="Live" dotColor="#FF0000" />
-            </View>
-          ) : (
-            <View />
-          )}
-          <View style={styles.rightControls}>
-            {isLive && (
-              <Pressable onPress={handleTogglePlay} style={styles.controlButton}>
-                {isLoading ? (
-                  <AppSpinner size="small" color="#FFFFFF" />
-                ) : (
-                  <Ionicons name={isPlaying ? "pause" : "play"} size={18} color="white" />
-                )}
-              </Pressable>
-            )}
-            <Pressable onPress={handleToggleMute} style={styles.controlButton}>
-              <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={18} color="white" />
-            </Pressable>
-            {onMinimize && (
-              <Pressable onPress={onMinimize} style={styles.controlButton}>
-                <Ionicons name="close-outline" size={20} color="white" />
-              </Pressable>
-            )}
-            <Pressable onPress={handleToggleFullscreen} style={styles.controlButton}>
-              <Ionicons
-                name={isFullscreen ? "contract-outline" : "expand-outline"}
-                size={18}
-                color="white"
-              />
-            </Pressable>
-          </View>
-        </View>
-
-        {!isLive && (
-          <View style={styles.centerControls}>
-            <View style={styles.transportControls}>
-              <Pressable onPress={() => handleSeekBy(-10)} style={styles.controlButton}>
-                <Ionicons name="play-back" size={18} color="white" />
-              </Pressable>
-              <Pressable onPress={handleTogglePlay} style={styles.playButton}>
-                {isLoading ? (
-                  <AppSpinner size="small" color="#FFFFFF" />
-                ) : (
-                  <Ionicons name={hasEnded ? "refresh" : isPlaying ? "pause" : "play"} size={24} color="white" />
-                )}
-              </Pressable>
-              <Pressable onPress={() => handleSeekBy(10)} style={styles.controlButton}>
-                <Ionicons name="play-forward" size={18} color="white" />
-              </Pressable>
-            </View>
-          </View>
-        )}
-
-        {!isLive && (
-          <View style={styles.bottomControls}>
-            <View style={styles.seekRow}>
-              <Text style={styles.timeText}>{formatTime(displayedTime)}</Text>
-              <View
-                style={styles.seekTouchArea}
-                onLayout={(e) => setSeekBarWidth(e.nativeEvent.layout.width)}
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                onResponderGrant={(e) => handleScrubStart(e.nativeEvent.locationX)}
-                onResponderMove={(e) => handleScrubMove(e.nativeEvent.locationX)}
-                onResponderRelease={(e) => handleScrubEnd(e.nativeEvent.locationX)}
-                onResponderTerminate={() => handleScrubEnd()}
-              >
-                <View style={styles.seekTrack}>
-                  <View style={[styles.seekFill, { width: `${displayedRatio * 100}%` }]} />
+            <View style={styles.topControls}>
+              {isLive ? (
+                <View style={styles.liveHeaderLeft}>
+                  <View style={styles.liveBadgeContainer}>
+                    <Badge label="Live" dotColor="#FF0000" />
+                  </View>
+                  {isBehindLive ? (
+                    <Pressable
+                      onPress={handleGoLive}
+                      style={styles.goLiveButton}
+                    >
+                      <Ionicons name="play-forward" size={14} color="#FFFFFF" />
+                      <Text style={styles.goLiveButtonText}>Go Live</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-                <View style={[styles.seekThumb, { left: seekThumbLeft }]} />
+              ) : (
+                <View />
+              )}
+              <View style={styles.rightControls}>
+                {isLive && (
+                  <Pressable onPress={handleTogglePlay} style={styles.controlButton}>
+                    {isLoading ? (
+                      <AppSpinner size="small" color="#FFFFFF" />
+                    ) : (
+                      <Ionicons name={isPlaying ? "pause" : "play"} size={18} color="white" />
+                    )}
+                  </Pressable>
+                )}
+                <Pressable onPress={handleToggleMute} style={styles.controlButton}>
+                  <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={18} color="white" />
+                </Pressable>
+                {onMinimize && (
+                  <Pressable onPress={onMinimize} style={styles.controlButton}>
+                    <Ionicons name="close-outline" size={20} color="white" />
+                  </Pressable>
+                )}
+                <Pressable onPress={handleToggleFullscreen} style={styles.controlButton}>
+                  <Ionicons
+                    name={isFullscreen ? "contract-outline" : "expand-outline"}
+                    size={18}
+                    color="white"
+                  />
+                </Pressable>
               </View>
-              <Text style={styles.timeText}>{formatTime(duration)}</Text>
             </View>
-          </View>
+
+            {!isLive && (
+              <View style={styles.centerControls} pointerEvents="box-none">
+                <View style={styles.transportControls}>
+                  <Pressable onPress={() => handleSeekBy(-10)} style={styles.controlButton}>
+                    <Ionicons name="play-back" size={18} color="white" />
+                  </Pressable>
+                  <Pressable onPress={handleTogglePlay} style={styles.playButton}>
+                    {isLoading ? (
+                      <AppSpinner size="small" color="#FFFFFF" />
+                    ) : (
+                      <Ionicons name={hasEnded ? "refresh" : isPlaying ? "pause" : "play"} size={24} color="white" />
+                    )}
+                  </Pressable>
+                  <Pressable onPress={() => handleSeekBy(10)} style={styles.controlButton}>
+                    <Ionicons name="play-forward" size={18} color="white" />
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {!isLive && (
+              <View style={styles.bottomControls}>
+                <View style={styles.seekRow}>
+                  <Text style={styles.timeText}>{formatTime(displayedTime)}</Text>
+                  <View
+                    style={styles.seekTouchArea}
+                    onLayout={(e) => setSeekBarWidth(e.nativeEvent.layout.width)}
+                    onStartShouldSetResponder={() => true}
+                    onMoveShouldSetResponder={() => true}
+                    onResponderGrant={(e) => handleScrubStart(e.nativeEvent.locationX)}
+                    onResponderMove={(e) => handleScrubMove(e.nativeEvent.locationX)}
+                    onResponderRelease={(e) => handleScrubEnd(e.nativeEvent.locationX)}
+                    onResponderTerminate={() => handleScrubEnd()}
+                  >
+                    <View style={styles.seekTrack}>
+                      <View style={[styles.seekFill, { width: `${displayedRatio * 100}%` }]} />
+                    </View>
+                    <View style={[styles.seekThumb, { left: seekThumbLeft }]} />
+                  </View>
+                  <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                </View>
+              </View>
+            )}
+          </>
         )}
-      </View>
+      </Pressable>
     </>
   ) : (
     <Image
@@ -450,7 +519,7 @@ const styles = StyleSheet.create({
   },
   containerAndroid: {
     borderRadius: 0,
-    overflow: "visible",
+    overflow: "hidden",
     borderWidth: 0,
   },
   fullscreenContainer: {
@@ -512,6 +581,27 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   liveBadgeContainer: {},
+  liveHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  goLiveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 32,
+    backgroundColor: "rgba(24, 24, 27, 0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+  },
+  goLiveButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   rightControls: {
     flexDirection: "row",
     alignItems: "center",

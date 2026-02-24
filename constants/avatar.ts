@@ -1,4 +1,4 @@
-export const DEFAULT_PROFILE_AVATAR = require("@/assets/Icons/persons.png");
+export const DEFAULT_PROFILE_AVATAR = require("@/assets/Icons/profile-icon.png");
 
 export type AvatarGender = "male" | "female";
 export const AVATAR_GENDERS: AvatarGender[] = ["male", "female"];

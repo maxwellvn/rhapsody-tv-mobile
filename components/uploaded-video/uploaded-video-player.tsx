@@ -55,6 +55,8 @@ export function UploadedVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [hasEnded, setHasEnded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [needsInitialSeek, setNeedsInitialSeek] = useState(initialPositionSeconds > 0);
 
@@ -85,6 +87,33 @@ export function UploadedVideoPlayer({
     });
   }, [paused]);
 
+  const resetControlsTimer = () => {
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => {
+      if (isPlaying) setControlsVisible(false);
+    }, 3000);
+  };
+
+  const toggleControls = () => {
+    if (controlsVisible) {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+      setControlsVisible(false);
+    } else {
+      setControlsVisible(true);
+      resetControlsTimer();
+    }
+  };
+
+  // Auto-hide controls when playback starts
+  useEffect(() => {
+    if (isPlaying) {
+      resetControlsTimer();
+    } else {
+      setControlsVisible(true);
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    }
+  }, [isPlaying]);
+
   useEffect(() => {
     return () => {
       if (scrubRafRef.current !== null) {
@@ -94,6 +123,7 @@ export function UploadedVideoPlayer({
         clearTimeout(loadTimeoutRef.current);
         loadTimeoutRef.current = null;
       }
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, []);
 
@@ -356,7 +386,7 @@ export function UploadedVideoPlayer({
         </View>
       )}
 
-      <View
+      <Pressable
         style={[
           styles.overlay,
           {
@@ -366,76 +396,80 @@ export function UploadedVideoPlayer({
             paddingBottom: spacing.sm + (isFullscreen ? insets.bottom : 0),
           },
         ]}
-        pointerEvents="box-none"
+        onPress={toggleControls}
       >
-        <LinearGradient
-          colors={["rgba(0,0,0,0.65)", "transparent"]}
-          style={styles.topGradient}
-          pointerEvents="none"
-        />
-        <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.65)"]}
-          style={styles.bottomGradient}
-          pointerEvents="none"
-        />
+        {controlsVisible && (
+          <>
+            <LinearGradient
+              colors={["rgba(0,0,0,0.65)", "transparent"]}
+              style={styles.topGradient}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.65)"]}
+              style={styles.bottomGradient}
+              pointerEvents="none"
+            />
 
-        <View style={styles.topControls}>
-          <View />
-          <View style={styles.rightControls}>
-            <Pressable onPress={handleToggleMute} style={styles.controlButton}>
-              <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={18} color="white" />
-            </Pressable>
-            {onMinimize && (
-              <Pressable onPress={onMinimize} style={styles.controlButton}>
-                <Ionicons name="close-outline" size={20} color="white" />
-              </Pressable>
-            )}
-            <Pressable onPress={handleToggleFullscreen} style={styles.controlButton}>
-              <Ionicons
-                name={isFullscreen ? "contract-outline" : "expand-outline"}
-                size={18}
-                color="white"
-              />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.centerControls}>
-          <View style={styles.transportControls}>
-            <Pressable onPress={() => handleSeekBy(-10)} style={styles.controlButton}>
-              <Ionicons name="play-back" size={18} color="white" />
-            </Pressable>
-            <Pressable onPress={handleTogglePlay} style={styles.playButton}>
-              <Ionicons name={hasEnded ? "refresh" : isPlaying ? "pause" : "play"} size={24} color="white" />
-            </Pressable>
-            <Pressable onPress={() => handleSeekBy(10)} style={styles.controlButton}>
-              <Ionicons name="play-forward" size={18} color="white" />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.bottomControls}>
-          <View style={styles.seekRow}>
-            <Text style={styles.timeText}>{formatTime(displayedTime)}</Text>
-            <View
-              style={styles.seekTouchArea}
-              onLayout={(e) => setSeekBarWidth(e.nativeEvent.layout.width)}
-              onStartShouldSetResponder={() => true}
-              onMoveShouldSetResponder={() => true}
-              onResponderGrant={(e) => handleScrubStart(e.nativeEvent.locationX)}
-              onResponderMove={(e) => handleScrubMove(e.nativeEvent.locationX)}
-              onResponderRelease={(e) => handleScrubEnd(e.nativeEvent.locationX)}
-              onResponderTerminate={() => handleScrubEnd()}
-            >
-              <View style={styles.seekTrack}>
-                <View style={[styles.seekFill, { width: `${displayedRatio * 100}%` }]} />
+            <View style={styles.topControls}>
+              <View />
+              <View style={styles.rightControls}>
+                <Pressable onPress={handleToggleMute} style={styles.controlButton}>
+                  <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={18} color="white" />
+                </Pressable>
+                {onMinimize && (
+                  <Pressable onPress={onMinimize} style={styles.controlButton}>
+                    <Ionicons name="close-outline" size={20} color="white" />
+                  </Pressable>
+                )}
+                <Pressable onPress={handleToggleFullscreen} style={styles.controlButton}>
+                  <Ionicons
+                    name={isFullscreen ? "contract-outline" : "expand-outline"}
+                    size={18}
+                    color="white"
+                  />
+                </Pressable>
               </View>
-              <View style={[styles.seekThumb, { left: seekThumbLeft }]} />
             </View>
-            <Text style={styles.timeText}>{formatTime(duration)}</Text>
-          </View>
-        </View>
-      </View>
+
+            <View style={styles.centerControls} pointerEvents="box-none">
+              <View style={styles.transportControls}>
+                <Pressable onPress={() => handleSeekBy(-10)} style={styles.controlButton}>
+                  <Ionicons name="play-back" size={18} color="white" />
+                </Pressable>
+                <Pressable onPress={handleTogglePlay} style={styles.playButton}>
+                  <Ionicons name={hasEnded ? "refresh" : isPlaying ? "pause" : "play"} size={24} color="white" />
+                </Pressable>
+                <Pressable onPress={() => handleSeekBy(10)} style={styles.controlButton}>
+                  <Ionicons name="play-forward" size={18} color="white" />
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.bottomControls}>
+              <View style={styles.seekRow}>
+                <Text style={styles.timeText}>{formatTime(displayedTime)}</Text>
+                <View
+                  style={styles.seekTouchArea}
+                  onLayout={(e) => setSeekBarWidth(e.nativeEvent.layout.width)}
+                  onStartShouldSetResponder={() => true}
+                  onMoveShouldSetResponder={() => true}
+                  onResponderGrant={(e) => handleScrubStart(e.nativeEvent.locationX)}
+                  onResponderMove={(e) => handleScrubMove(e.nativeEvent.locationX)}
+                  onResponderRelease={(e) => handleScrubEnd(e.nativeEvent.locationX)}
+                  onResponderTerminate={() => handleScrubEnd()}
+                >
+                  <View style={styles.seekTrack}>
+                    <View style={[styles.seekFill, { width: `${displayedRatio * 100}%` }]} />
+                  </View>
+                  <View style={[styles.seekThumb, { left: seekThumbLeft }]} />
+                </View>
+                <Text style={styles.timeText}>{formatTime(duration)}</Text>
+              </View>
+            </View>
+          </>
+        )}
+      </Pressable>
     </>
   ) : (
     <Image source={thumbnailSource} style={styles.thumbnail} resizeMode="contain" />
@@ -480,7 +514,7 @@ const styles = StyleSheet.create({
   },
   containerAndroid: {
     borderRadius: 0,
-    overflow: "visible",
+    overflow: "hidden",
     borderWidth: 0,
   },
   fullscreenContainer: {

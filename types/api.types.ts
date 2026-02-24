@@ -636,9 +636,11 @@ export interface NotificationDto {
     | "channel_new_video"
     | "channel_go_live"
     | "channel_new_program"
+    | "channel_new_schedule"
     | "comment_liked"
     | "comment_replied"
-    | "announcement";
+    | "announcement"
+    | "custom";
   title: string;
   body: string;
   data?: Record<string, any>;

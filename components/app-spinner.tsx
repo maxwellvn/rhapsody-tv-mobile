@@ -1,10 +1,10 @@
-import Loader from "@/components/loader";
+import { ActivityIndicator } from "react-native";
 
 type AppSpinnerProps = {
   size?: "small" | "large" | number;
   color?: string;
 };
 
-export function AppSpinner(_props: AppSpinnerProps) {
-  return <Loader />;
+export function AppSpinner({ size = "small", color }: AppSpinnerProps) {
+  return <ActivityIndicator size={typeof size === "number" ? size : size} color={color} />;
 }

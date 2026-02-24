@@ -401,6 +401,11 @@ export default function VideoScreen() {
     return unsubscribe;
   }, [id, isDownloading]);
 
+  const handleCancelDownload = () => {
+    if (!id) return;
+    offlineDownloadService.cancelDownload(id);
+  };
+
   const handleDownload = () => {
     if (!id || isDownloaded || isDownloading || !videoDetails.playbackUrl) return;
 
@@ -673,15 +678,6 @@ export default function VideoScreen() {
                   )}
                 </Pressable>
 
-                <Pressable style={styles.actionButton}>
-                  <Ionicons
-                    name="gift-outline"
-                    size={dimensions.isTablet ? fs(16) : fs(14)}
-                    color="#000000"
-                  />
-                  <Text style={styles.actionButtonText}>Sponsor</Text>
-                </Pressable>
-
                 <Pressable
                   style={[styles.actionButton, isInWatchlist && styles.actionButtonActive]}
                   onPress={handleWatchlist}
@@ -707,42 +703,56 @@ export default function VideoScreen() {
                 </Pressable>
 
                 <Pressable
-                  style={[
-                    styles.actionButton,
-                    isDownloaded && styles.actionButtonActive,
-                  ]}
-                  onPress={handleDownload}
-                  disabled={isDownloading || !id}
+                  style={styles.actionButton}
+                  onPress={() => router.push("/donate")}
                 >
-                  {isDownloading ? (
-                    <>
-                      <AppSpinner size="small" color="#000000" />
-                      <Text style={styles.actionButtonText}>
-                        {`Downloading ${Math.round(downloadProgress * 100)}%`}
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons
-                        name={isDownloaded ? "download" : "download-outline"}
-                        size={dimensions.isTablet ? fs(16) : fs(14)}
-                        color={isDownloaded ? "#E50914" : "#000000"}
-                      />
-                      <Text
-                        style={[
-                          styles.actionButtonText,
-                          isDownloaded && styles.actionButtonTextActive,
-                        ]}
-                      >
-                        {isDownloading
-                          ? `Downloading ${Math.round(downloadProgress * 100)}%`
-                          : isDownloaded
-                            ? "Downloaded"
-                            : "Download"}
-                      </Text>
-                    </>
-                  )}
+                  <Ionicons
+                    name="heart-outline"
+                    size={dimensions.isTablet ? fs(16) : fs(14)}
+                    color="#000000"
+                  />
+                  <Text style={styles.actionButtonText}>Donate</Text>
                 </Pressable>
+
+                {isDownloading ? (
+                  <Pressable
+                    style={styles.actionButton}
+                    onPress={handleCancelDownload}
+                  >
+                    <ActivityIndicator size="small" color="#000000" />
+                    <Text style={styles.actionButtonText}>
+                      {`${Math.round(downloadProgress * 100)}%`}
+                    </Text>
+                    <Ionicons
+                      name="close-circle"
+                      size={dimensions.isTablet ? fs(14) : fs(12)}
+                      color="#DC2626"
+                    />
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={[
+                      styles.actionButton,
+                      isDownloaded && styles.actionButtonActive,
+                    ]}
+                    onPress={handleDownload}
+                    disabled={isDownloaded || !id}
+                  >
+                    <Ionicons
+                      name={isDownloaded ? "checkmark-circle" : "download-outline"}
+                      size={dimensions.isTablet ? fs(16) : fs(14)}
+                      color={isDownloaded ? "#E50914" : "#000000"}
+                    />
+                    <Text
+                      style={[
+                        styles.actionButtonText,
+                        isDownloaded && styles.actionButtonTextActive,
+                      ]}
+                    >
+                      {isDownloaded ? "Downloaded" : "Download"}
+                    </Text>
+                  </Pressable>
+                )}
               </ScrollView>
 
               {isDownloading && (

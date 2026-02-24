@@ -130,10 +130,6 @@ class DownloadNotificationService {
       ? `Downloading HLS stream... ${percent}%`
       : `Downloading video... ${percent}%`;
 
-    if (this.activeNotificationId) {
-      await notifications.dismissNotificationAsync(this.activeNotificationId);
-    }
-
     this.activeNotificationId = await notifications.scheduleNotificationAsync({
       content: {
         title: title || "Video download",

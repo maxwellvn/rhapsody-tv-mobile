@@ -1,4 +1,3 @@
-import { AppSpinner } from "@/components/app-spinner";
 import {
   ActiveDownload,
   offlineDownloadService,
@@ -10,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -107,7 +107,7 @@ export default function DownloadedVideosScreen() {
 
         {loading && activeDownloads.length === 0 ? (
           <View style={styles.loadingContainer}>
-            <AppSpinner size="small" color="#000" />
+            <ActivityIndicator size="small" color="#000" />
           </View>
         ) : isEmpty ? (
           <View style={styles.emptyContainer}>

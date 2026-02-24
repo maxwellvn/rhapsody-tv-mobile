@@ -68,9 +68,9 @@ export function HorizontalVideoCard({
         <Text style={styles.channelName}>{channelName}</Text>
 
         <View style={styles.metaContainer}>
-          <Text style={styles.viewCount}>{viewCount}</Text>
+          <Text style={styles.viewCount} numberOfLines={1}>{viewCount}</Text>
           <Text style={styles.separator}>|</Text>
-          <Text style={styles.timeAgo}>{timeAgo}</Text>
+          <Text style={styles.timeAgo} numberOfLines={1}>{timeAgo}</Text>
         </View>
       </View>
 

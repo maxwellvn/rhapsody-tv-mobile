@@ -363,15 +363,6 @@ export default function LiveVideoScreen() {
 
                 <Pressable style={styles.actionButton}>
                   <Ionicons
-                    name="gift-outline"
-                    size={dimensions.isTablet ? fs(16) : fs(14)}
-                    color="#000000"
-                  />
-                  <Text style={styles.actionButtonText}>Sponsor</Text>
-                </Pressable>
-
-                <Pressable style={styles.actionButton}>
-                  <Ionicons
                     name="share-social-outline"
                     size={dimensions.isTablet ? fs(16) : fs(14)}
                     color="#000000"
@@ -379,14 +370,18 @@ export default function LiveVideoScreen() {
                   <Text style={styles.actionButtonText}>Share</Text>
                 </Pressable>
 
-                <Pressable style={styles.actionButton}>
+                <Pressable
+                  style={styles.actionButton}
+                  onPress={() => router.push("/donate")}
+                >
                   <Ionicons
-                    name="download-outline"
+                    name="heart-outline"
                     size={dimensions.isTablet ? fs(16) : fs(14)}
                     color="#000000"
                   />
-                  <Text style={styles.actionButtonText}>Download</Text>
+                  <Text style={styles.actionButtonText}>Donate</Text>
                 </Pressable>
+
               </ScrollView>
             </View>
 

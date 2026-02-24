@@ -12,6 +12,7 @@ type ReminderRecord = {
   title: string;
   startTime: string;
   notificationId: string;
+  duringNotificationIds?: string[];
   createdAt: string;
 };
 
@@ -126,12 +127,72 @@ class ScheduleReminderNotificationService {
     return state;
   }
 
+  private async scheduleDuringProgramNotifications(
+    notifications: NotificationsModule,
+    title: string,
+    startTime: string,
+    endTime: string,
+    slotId: string,
+  ): Promise<string[]> {
+    const startMs = new Date(startTime).getTime();
+    const endMs = new Date(endTime).getTime();
+    const durationMs = endMs - startMs;
+
+    if (durationMs <= 0) return [];
+
+    const now = Date.now();
+    const ids: string[] = [];
+
+    const reminders = [
+      {
+        time: new Date(startMs + Math.round(durationMs / 3)),
+        body: `"${title}" is on now — tune in!`,
+      },
+      {
+        time: new Date(startMs + Math.round((2 * durationMs) / 3)),
+        body: `You can still join "${title}"!`,
+      },
+    ];
+
+    for (const reminder of reminders) {
+      if (reminder.time.getTime() <= now + 3000) continue;
+      if (reminder.time.getTime() >= endMs) continue;
+
+      try {
+        const id = await notifications.scheduleNotificationAsync({
+          content: {
+            title: "Program reminder",
+            body: reminder.body,
+            sound: true,
+            data: {
+              type: "program_reminder",
+              slotId,
+              startTime,
+            },
+          },
+          trigger: {
+            type: "date",
+            date: reminder.time,
+            channelId:
+              Platform.OS === "android" ? REMINDER_CHANNEL_ID : undefined,
+          } as any,
+        });
+        ids.push(id);
+      } catch {
+        // Continue with other reminders if one fails.
+      }
+    }
+
+    return ids;
+  }
+
   async toggleProgramReminder(params: {
     slotId: string;
     title: string;
     startTime: string;
+    endTime: string;
   }): Promise<{ scheduled: boolean; key: string }> {
-    const { slotId, title, startTime } = params;
+    const { slotId, title, startTime, endTime } = params;
     const key = this.getReminderKey(slotId, startTime);
 
     const notifications = await this.getNotifications();
@@ -149,6 +210,15 @@ class ScheduleReminderNotificationService {
         );
       } catch {
         // Ignore stale notification IDs.
+      }
+      if (existingReminder.duringNotificationIds) {
+        for (const id of existingReminder.duringNotificationIds) {
+          try {
+            await notifications.cancelScheduledNotificationAsync(id);
+          } catch {
+            // Ignore stale notification IDs.
+          }
+        }
       }
       delete reminderMap[key];
       await this.writeReminderMap(reminderMap);
@@ -190,11 +260,21 @@ class ScheduleReminderNotificationService {
       throw new Error("NOTIFICATIONS_UNAVAILABLE");
     }
 
+    const duringNotificationIds =
+      await this.scheduleDuringProgramNotifications(
+        notifications,
+        title,
+        startTime,
+        endTime,
+        slotId,
+      );
+
     reminderMap[key] = {
       slotId,
       title,
       startTime: startAt.toISOString(),
       notificationId,
+      duringNotificationIds,
       createdAt: new Date().toISOString(),
     };
     await this.writeReminderMap(reminderMap);
@@ -205,8 +285,9 @@ class ScheduleReminderNotificationService {
     slotId: string;
     title: string;
     startTime: string;
+    endTime: string;
   }): Promise<{ scheduled: boolean; key: string }> {
-    const { slotId, title, startTime } = params;
+    const { slotId, title, startTime, endTime } = params;
     const key = this.getReminderKey(slotId, startTime);
     const reminderMap = await this.readReminderMap();
 
@@ -254,11 +335,21 @@ class ScheduleReminderNotificationService {
       return { scheduled: false, key };
     }
 
+    const duringNotificationIds =
+      await this.scheduleDuringProgramNotifications(
+        notifications,
+        title,
+        startTime,
+        endTime,
+        slotId,
+      );
+
     reminderMap[key] = {
       slotId,
       title,
       startTime: startAt.toISOString(),
       notificationId,
+      duringNotificationIds,
       createdAt: new Date().toISOString(),
     };
     await this.writeReminderMap(reminderMap);

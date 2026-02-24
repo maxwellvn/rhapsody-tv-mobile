@@ -50,14 +50,13 @@ export function UserAvatar({
     <Image
       source={DEFAULT_PROFILE_AVATAR}
       style={[
-        styles.image,
         {
           width: size,
           height: size,
-          borderRadius: size / 2,
         },
         style as StyleProp<ImageStyle>,
       ]}
+      resizeMode="contain"
     />
   );
 }

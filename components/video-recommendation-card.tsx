@@ -55,11 +55,11 @@ export function VideoRecommendationCard({
               style={styles.channelAvatar}
               resizeMode="contain"
             />
-            <Text style={styles.channelName}>{channelName}</Text>
+            <Text style={styles.channelName} numberOfLines={1}>{channelName}</Text>
             <Ionicons name="eye-outline" size={14} color="#737373" style={styles.eyeIcon} />
-            <Text style={styles.viewCount}>{viewCount}</Text>
+            <Text style={styles.viewCount} numberOfLines={1}>{viewCount}</Text>
             <Text style={styles.separator}>|</Text>
-            <Text style={styles.timeAgo}>{timeAgo}</Text>
+            <Text style={styles.timeAgo} numberOfLines={1}>{timeAgo}</Text>
           </View>
         </View>
 
@@ -115,30 +115,36 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
+    flexShrink: 0,
   },
   channelName: {
     fontSize: 13,
     fontWeight: '500',
     color: '#000000',
     fontFamily: 'Inter_500Medium',
+    flexShrink: 1,
   },
   eyeIcon: {
     marginLeft: 4,
+    flexShrink: 0,
   },
   viewCount: {
     fontSize: 13,
     color: '#737373',
     fontFamily: 'Inter_400Regular',
+    flexShrink: 0,
   },
   separator: {
     fontSize: 13,
     color: '#737373',
     fontFamily: 'Inter_400Regular',
+    flexShrink: 0,
   },
   timeAgo: {
     fontSize: 13,
     color: '#737373',
     fontFamily: 'Inter_400Regular',
+    flexShrink: 0,
   },
   menuButton: {
     padding: 4,
