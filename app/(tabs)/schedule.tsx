@@ -16,7 +16,6 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   Image,
   RefreshControl,
   ScrollView,
@@ -24,10 +23,12 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useAlert } from '@/context/AlertContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ScheduleScreen() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [refreshing, setRefreshing] = useState(false);
   const {
@@ -106,13 +107,9 @@ export default function ScheduleScreen() {
     () =>
       scheduleData
         .filter((slot) => {
-          const startHour = new Date(slot.startTime).getHours();
-          const endHour = new Date(slot.endTime).getHours();
           if (!isToday) return true;
-          return (
-            endHour > currentHour ||
-            (endHour === currentHour && startHour <= currentHour)
-          );
+          // Hide programs that have already ended
+          return new Date(slot.endTime).getTime() > Date.now();
         })
         .sort(
           (a, b) =>
@@ -255,7 +252,7 @@ export default function ScheduleScreen() {
         [result.key]: result.scheduled,
       }));
 
-      Alert.alert(
+      showAlert(
         result.scheduled ? "Reminder set" : "Reminder removed",
         result.scheduled
           ? `You'll be notified when "${slot.title}" starts.`
@@ -266,7 +263,7 @@ export default function ScheduleScreen() {
         error instanceof Error ? error.message : "Could not set reminder.";
 
       if (message === "NOTIFICATION_PERMISSION_DENIED") {
-        Alert.alert(
+        showAlert(
           "Notification permission needed",
           "Allow notifications to use Notify Me reminders.",
         );
@@ -274,12 +271,12 @@ export default function ScheduleScreen() {
       }
 
       if (message === "PROGRAM_ALREADY_STARTED") {
-        Alert.alert("Program already started", "This reminder can no longer be set.");
+        showAlert("Program already started", "This reminder can no longer be set.");
         return;
       }
 
       if (message === "NOTIFICATIONS_UNAVAILABLE") {
-        Alert.alert(
+        showAlert(
           "Notifications unavailable in Expo Go",
           "Use a development build to enable program reminders on Android.",
         );
@@ -287,7 +284,7 @@ export default function ScheduleScreen() {
       }
 
       console.error("Schedule reminder error:", error);
-      Alert.alert("Reminder failed", "Unable to update reminder right now.");
+      showAlert("Reminder failed", "Unable to update reminder right now.");
     }
   };
 
@@ -334,19 +331,15 @@ export default function ScheduleScreen() {
           <Text style={styles.emptyText}>No schedule available</Text>
         ) : (
           visibleSchedule.map((slot, index) => {
-          const startDate = new Date(slot.startTime);
-          const endDate = new Date(slot.endTime);
-          const startHour = startDate.getHours();
-          const endHour = endDate.getHours();
-          const isCurrentHour =
-            isToday &&
-            startHour <= currentHour &&
-            currentHour < endHour;
-          const isUpcoming = new Date(slot.startTime).getTime() > Date.now();
-          const isPast = isToday && new Date(slot.endTime).getTime() < Date.now();
+          const nowMs = Date.now();
+          const startMs = new Date(slot.startTime).getTime();
+          const endMs = new Date(slot.endTime).getTime();
+          const isCurrentlyAiring = isToday && startMs <= nowMs && nowMs < endMs;
+          const isUpcoming = startMs > nowMs;
+          const isPast = isToday && endMs < nowMs;
           const reminderKey = getReminderKey(slot);
           const isReminderSet = reminderState[reminderKey] ?? false;
-          const actionLabel = isCurrentHour
+          const actionLabel = isCurrentlyAiring
             ? 'Watch Now'
             : isPast
               ? ''
@@ -363,13 +356,13 @@ export default function ScheduleScreen() {
               title={slot.title}
               description={slot.description || ''}
               watchingCount={String(slot.viewerCount ?? 0)}
-              isLive={isCurrentHour}
-              isActionActive={!isCurrentHour && !isPast && isReminderSet}
+              isLive={isCurrentlyAiring}
+              isActionActive={!isCurrentlyAiring && !isPast && isReminderSet}
               actionLabel={actionLabel}
               hideAction={isPast}
               onPress={() => console.log('Program card pressed')}
               onWatchNowPress={() => {
-                if (isCurrentHour) {
+                if (isCurrentlyAiring) {
                   router.push(
                     slot.liveStreamId
                       ? `/live-video?liveStreamId=${slot.liveStreamId}`
