@@ -1,20 +1,26 @@
+import { memo } from 'react';
 import { FONTS } from '@/styles/global';
-import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Badge } from '../badge';
 
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+
 type ChannelCardProps = {
-  logoSource: ImageSourcePropType;
+  logoSource: string | number;
   channelName: string;
   isLive?: boolean;
   onPress?: () => void;
 };
 
-export function ChannelCard({ 
-  logoSource, 
-  channelName, 
+export const ChannelCard = memo(function ChannelCard({
+  logoSource,
+  channelName,
   isLive = false,
-  onPress 
+  onPress,
 }: ChannelCardProps) {
+  const source = typeof logoSource === 'string' ? { uri: logoSource } : logoSource;
+
   return (
     <Pressable
       style={styles.container}
@@ -27,10 +33,13 @@ export function ChannelCard({
             <Badge label="Live" dotColor="#FF0000" />
           </View>
         )}
-        <Image 
-          source={logoSource} 
+        <Image
+          source={source}
           style={styles.logo}
-          resizeMode="contain"
+          contentFit="contain"
+          placeholder={{ blurhash }}
+          transition={150}
+          cachePolicy="memory-disk"
         />
       </View>
       <Text style={styles.channelName} numberOfLines={1}>
@@ -38,7 +47,7 @@ export function ChannelCard({
       </Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -73,10 +82,10 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   channelName: {
-    marginTop: 8,
-    fontSize: 15,
-    fontFamily: FONTS.semibold,
-    color: '#000000',
     textAlign: 'center',
+    fontSize: 12,
+    fontFamily: FONTS.semibold,
+    color: '#1F2937',
+    marginTop: 8,
   },
 });

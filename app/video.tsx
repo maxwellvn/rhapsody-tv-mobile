@@ -234,6 +234,7 @@ export default function VideoScreen() {
         const response = await videoService.getVodVideo(id);
         if (response.success && response.data) {
           const video = response.data;
+          const raw = video as any;
           setVideoUri(offlineVideo?.localUri || video.playbackUrl);
           setVideoDetails((prev) => ({
             ...prev,
@@ -246,7 +247,11 @@ export default function VideoScreen() {
             playbackUrl: video.playbackUrl,
             channelId: video.channel?.id || video.channelId,
             channelSlug: video.channel?.slug,
-            resolvedProgramName: video.program?.title,
+            resolvedProgramName:
+              video.program?.title ||
+              raw.programName ||
+              raw.program?.name ||
+              undefined,
           }));
           didResolveVideo = true;
         }
@@ -284,6 +289,11 @@ export default function VideoScreen() {
               playbackUrl: fallbackPlaybackUrl,
               channelId: video.channel?.id,
               channelSlug: video.channel?.slug,
+              resolvedProgramName:
+                video.program?.title ||
+                video.programName ||
+                video.program?.name ||
+                undefined,
             }));
             didResolveVideo = true;
           }

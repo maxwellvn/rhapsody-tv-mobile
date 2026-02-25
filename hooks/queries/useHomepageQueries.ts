@@ -34,13 +34,11 @@ export function useLiveNow() {
     queryKey: homepageKeys.liveNow(),
     queryFn: async () => {
       const response = await homepageService.getLiveNow();
-      console.log("response", response.data);
       return response.data;
     },
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: true,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
-    refetchOnMount: "always",
     refetchOnReconnect: true,
   });
 }
@@ -55,10 +53,9 @@ export function useLiveStreams(limit: number = 10) {
       const response = await homepageService.getLiveStreams(limit);
       return response.data || [];
     },
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: true,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
-    refetchOnMount: "always",
     refetchOnReconnect: true,
   });
 }
@@ -90,10 +87,9 @@ export function useContinueWatching() {
       return response.data || [];
     },
     enabled: isAuthenticated,
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: true,
+    staleTime: 60_000,
+    refetchInterval: 2 * 60_000,
     refetchOnWindowFocus: true,
-    refetchOnMount: "always",
     refetchOnReconnect: true,
   });
 }
@@ -108,11 +104,9 @@ export function useChannels(limit: number = 10) {
       const response = await homepageService.getChannels(limit);
       return response.data || [];
     },
-    staleTime: 1000 * 20,
-    refetchInterval: 1000 * 10,
-    refetchIntervalInBackground: true,
+    staleTime: 3 * 60_000,
+    refetchInterval: 5 * 60_000,
     refetchOnWindowFocus: true,
-    refetchOnMount: "always",
     refetchOnReconnect: true,
   });
 }
@@ -128,9 +122,9 @@ export function usePrograms(limit: number = 10) {
       const response = await homepageService.getPrograms(safeLimit);
       return response.data || [];
     },
-    refetchInterval: 3 * 60_000,
+    staleTime: 3 * 60_000,
+    refetchInterval: 5 * 60_000,
     refetchOnWindowFocus: true,
-    refetchOnMount: "always",
     refetchOnReconnect: true,
   });
 }
@@ -146,9 +140,9 @@ export function useFeaturedVideos(limit: number = 10) {
       const response = await homepageService.getFeaturedVideos(safeLimit);
       return response.data || [];
     },
-    refetchInterval: 3 * 60_000,
+    staleTime: 3 * 60_000,
+    refetchInterval: 5 * 60_000,
     refetchOnWindowFocus: true,
-    refetchOnMount: "always",
     refetchOnReconnect: true,
   });
 }
@@ -163,9 +157,9 @@ export function useProgramHighlights(limit: number = 10) {
       const response = await homepageService.getProgramHighlights(limit);
       return response.data || [];
     },
-    refetchInterval: 3 * 60_000,
+    staleTime: 3 * 60_000,
+    refetchInterval: 5 * 60_000,
     refetchOnWindowFocus: true,
-    refetchOnMount: "always",
     refetchOnReconnect: true,
   });
 }

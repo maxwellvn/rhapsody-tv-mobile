@@ -1,6 +1,11 @@
 import { vodService } from "@/services/vod.service";
 import { CreateCommentDto } from "@/types/api.types";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 /**
  * Query Keys for VOD
@@ -27,10 +32,33 @@ export function useVodVideos(page = 1, limit = 50) {
       const response = await vodService.getVideos(page, limit);
       return response.data;
     },
-    refetchInterval: 2 * 60_000,
+    staleTime: 2 * 60_000,
     refetchOnWindowFocus: true,
-    refetchOnMount: "always",
     refetchOnReconnect: true,
+  });
+}
+
+/**
+ * Infinite-scroll paginated VOD videos
+ */
+export function useInfiniteVodVideos(limit = 20) {
+  return useInfiniteQuery({
+    queryKey: [...vodKeys.lists(), "infinite"] as const,
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await vodService.getVideos(pageParam, limit);
+      return response.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage) return undefined;
+      const currentPage = lastPage.page ?? 1;
+      const totalPages =
+        (lastPage as any).totalPages ??
+        (lastPage as any).pages ??
+        1;
+      return currentPage < totalPages ? currentPage + 1 : undefined;
+    },
+    staleTime: 2 * 60_000,
   });
 }
 
