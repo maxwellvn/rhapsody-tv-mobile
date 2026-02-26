@@ -822,6 +822,7 @@ export default function VideoScreen() {
                         : require("@/assets/images/Image-2.png")
                     }
                     title={video.title}
+                    programName={video.program?.title}
                     channelName={video.channel?.name || "Rhapsody TV"}
                     channelAvatar={
                       video.channel?.avatar

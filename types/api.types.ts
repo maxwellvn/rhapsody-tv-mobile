@@ -131,6 +131,10 @@ export interface Video {
   uploadDate: string;
   category: string;
   tags: string[];
+  program?: {
+    id: string;
+    title: string;
+  };
   channel: {
     id: string;
     name: string;
@@ -237,6 +241,10 @@ export interface ChannelVideoListItemDto {
   durationSeconds?: number;
   viewCount: number;
   publishedAt?: string;
+  program?: {
+    id: string;
+    title: string;
+  };
 }
 
 export interface ChannelVideosPaginatedDto {
@@ -495,6 +503,10 @@ export interface HomepageFeaturedVideo {
     slug: string;
     logoUrl: string;
     coverImageUrl: string;
+  };
+  program?: {
+    id: string;
+    title: string;
   };
 }
 
