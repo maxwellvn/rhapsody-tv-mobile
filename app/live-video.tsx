@@ -275,7 +275,11 @@ export default function LiveVideoScreen() {
                   style={styles.channelIcon}
                   resizeMode="contain"
                 />
-                <Text style={styles.channelName}>
+                <Text
+                  style={styles.channelName}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {liveProgram?.channel?.name || "Rhapsody TV"}
                 </Text>
                 <View style={styles.viewCountContainer}>
@@ -284,15 +288,14 @@ export default function LiveVideoScreen() {
                     size={dimensions.isTablet ? fs(18) : fs(16)}
                     color="#737373"
                   />
-                  <Text style={styles.viewCount}>
+                  <Text
+                    style={styles.viewCount}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {`${Math.max(0, viewerCount)} watching`}
                   </Text>
                 </View>
-                {liveProgram?.startTime && (
-                  <Text style={styles.startedTime}>
-                    {formatRelativeTime(liveProgram.startTime)}
-                  </Text>
-                )}
                 {isProgramError && (
                   <Text style={styles.startedTime}>
                     Unable to load livestream details.
@@ -406,6 +409,7 @@ export default function LiveVideoScreen() {
                         : require("@/assets/images/Image-2.png")
                     }
                     title={video.title}
+                    programName={video.program?.title}
                     channelName={liveProgram?.channel?.name || "Channel"}
                     channelAvatar={
                       liveProgram?.channel?.logoUrl

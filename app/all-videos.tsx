@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -21,54 +22,122 @@ const fallbackImage = require("@/assets/images/carusel-2.png");
 const NUM_COLUMNS = dimensions.isTablet ? 3 : 2;
 const PAGE_SIZE = 20;
 
-/**
- * Simple daily-seed shuffle so the FYP order changes each day
- * but stays consistent within a session.
- */
-function seededShuffle<T>(arr: T[], seed: number): T[] {
-  const shuffled = [...arr];
-  let s = seed;
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    s = (s * 16807 + 0) % 2147483647;
-    const j = s % (i + 1);
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
+function normalizeText(text?: string): string {
+  return (text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-/** Score videos for the FYP: blend of recency and popularity */
+function tokenize(text?: string): string[] {
+  return normalizeText(text)
+    .split(" ")
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2);
+}
+
+function uniqueTokens(text?: string): string[] {
+  return Array.from(new Set(tokenize(text)));
+}
+
+function jaccard(a: string[], b: string[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  const setA = new Set(a);
+  const setB = new Set(b);
+  let intersection = 0;
+  setA.forEach((token) => {
+    if (setB.has(token)) intersection += 1;
+  });
+  const union = setA.size + setB.size - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+function videoSemanticText(video: VodVideoResponseDto): string {
+  return [
+    video.title,
+    video.program?.title,
+    video.channel?.name,
+    video.description,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function stableHash(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * MMR-style feed ranking: balances popularity/recency relevance with semantic diversity.
+ * This avoids long runs of near-duplicate titles/programs while keeping strong videos near top.
+ */
 function fypSort(videos: VodVideoResponseDto[], seed: number): VodVideoResponseDto[] {
+  if (videos.length <= 2) return videos;
+
   const now = Date.now();
-  const scored = videos.map((v) => {
+  const candidates = videos.map((v) => {
     const ageHours = Math.max(1, (now - new Date(v.createdAt).getTime()) / 3_600_000);
-    const score = (v.viewCount + v.likeCount * 3 + 1) / Math.pow(ageHours, 0.8);
-    return { video: v, score };
+    const popularity = Math.log1p(v.viewCount) * 1.7 + Math.log1p(v.likeCount) * 2.3;
+    const freshness = 1 / Math.pow(ageHours, 0.55);
+    const programBoost = v.program?.id ? 0.35 : 0;
+    const baseScore = popularity + freshness * 8 + programBoost;
+    const semanticTokens = uniqueTokens(videoSemanticText(v));
+    return { video: v, baseScore, semanticTokens };
   });
 
-  scored.sort((a, b) => b.score - a.score);
+  const minBase = Math.min(...candidates.map((c) => c.baseScore));
+  const maxBase = Math.max(...candidates.map((c) => c.baseScore));
+  const normalized = candidates.map((c) => ({
+    ...c,
+    relevance:
+      maxBase > minBase ? (c.baseScore - minBase) / (maxBase - minBase) : 1,
+  }));
 
-  const topHalf = scored.slice(0, Math.ceil(scored.length / 2));
-  const bottomHalf = scored.slice(Math.ceil(scored.length / 2));
+  const remaining = [...normalized];
+  const selected: typeof normalized = [];
+  const lambda = 0.82;
 
-  const shuffledTop = seededShuffle(topHalf, seed);
-  const shuffledBottom = seededShuffle(bottomHalf, seed + 1);
+  while (remaining.length > 0) {
+    let bestIndex = 0;
+    let bestScore = Number.NEGATIVE_INFINITY;
 
-  const result: VodVideoResponseDto[] = [];
-  let ti = 0;
-  let bi = 0;
-  while (ti < shuffledTop.length || bi < shuffledBottom.length) {
-    if (ti < shuffledTop.length) result.push(shuffledTop[ti++].video);
-    if (ti < shuffledTop.length) result.push(shuffledTop[ti++].video);
-    if (bi < shuffledBottom.length) result.push(shuffledBottom[bi++].video);
+    for (let i = 0; i < remaining.length; i += 1) {
+      const candidate = remaining[i];
+      const redundancy =
+        selected.length === 0
+          ? 0
+          : Math.max(
+              ...selected.map((picked) =>
+                jaccard(candidate.semanticTokens, picked.semanticTokens),
+              ),
+            );
+
+      const dailyJitter = ((stableHash(candidate.video.id) ^ seed) % 1000) / 1000_000;
+      const mmrScore = lambda * candidate.relevance - (1 - lambda) * redundancy + dailyJitter;
+
+      if (mmrScore > bestScore) {
+        bestScore = mmrScore;
+        bestIndex = i;
+      }
+    }
+
+    selected.push(remaining.splice(bestIndex, 1)[0]);
   }
 
-  return result;
+  return selected.map((item) => item.video);
 }
 
 interface VideoItem {
   id: string;
   title: string;
   thumbnail: string | number;
+  programName?: string;
 }
 
 /* ═══════════════════════════════════════════════
@@ -84,6 +153,8 @@ export default function AllVideosScreen() {
   const {
     data,
     isLoading,
+    isRefetching,
+    refetch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -97,6 +168,7 @@ export default function AllVideosScreen() {
       id: v.id,
       title: v.title,
       thumbnail: v.thumbnailUrl || fallbackImage,
+      programName: v.program?.title,
     }));
   }, [data]);
 
@@ -106,12 +178,17 @@ export default function AllVideosScreen() {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const handleRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
   const renderItem = useCallback(
     ({ item }: { item: VideoItem }) => (
       <View style={styles.cardWrapper}>
         <VideoCard
           imageSource={item.thumbnail}
           title={item.title}
+          subtitle={item.programName}
           badgeLabel="Video"
           badgeColor="#0EA5E9"
           showBadge
@@ -171,6 +248,13 @@ export default function AllVideosScreen() {
             removeClippedSubviews
             onEndReached={handleEndReached}
             onEndReachedThreshold={0.5}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching && !isLoading}
+                onRefresh={handleRefresh}
+                tintColor="#1D4ED8"
+              />
+            }
             ListFooterComponent={
               isFetchingNextPage ? (
                 <ActivityIndicator

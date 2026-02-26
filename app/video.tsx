@@ -7,10 +7,10 @@ import { DEFAULT_PROFILE_AVATAR } from "@/constants/avatar";
 import { useVideoOverlay } from "@/context/VideoOverlayContext";
 import {
   useChannelSubscriptionStatus,
-  useChannelVideos,
   useSubscribe,
   useUnsubscribe,
 } from "@/hooks/queries/useChannelQueries";
+import { useRelatedVideos } from "@/hooks/queries/useVideoQueries";
 import { useLikeStatus, useToggleLike, useVideoComments } from "@/hooks/queries/useVodQueries";
 import {
   useAddToWatchlist,
@@ -88,9 +88,9 @@ export default function VideoScreen() {
   const { data: subscriptionStatus, isLoading: isCheckingSubscription } =
     useChannelSubscriptionStatus(videoDetails.channelId);
 
-  // Fetch channel videos for recommendations
-  const { data: channelVideosData, isLoading: isLoadingChannelVideos } =
-    useChannelVideos(videoDetails.channelSlug || "", 1, 8);
+  // Fetch semantically related videos (backend-ranked)
+  const { data: relatedVideosData, isLoading: isLoadingRelatedVideos } =
+    useRelatedVideos(id || "");
 
   // Fetch real comment count and latest comment for preview
   const { data: commentsPreviewData } = useVideoComments(id || "", 1, 1, 'newest');
@@ -173,7 +173,7 @@ export default function VideoScreen() {
   const nextVideoIdRef = useRef<string | null>(null);
 
   // Keep nextVideoIdRef up to date
-  const recommendedVideos = (channelVideosData?.videos || []).filter((v) => v.id !== id);
+  const recommendedVideos = (relatedVideosData?.items || []).filter((v) => v.id !== id);
   useEffect(() => {
     nextVideoIdRef.current = recommendedVideos[0]?.id ?? null;
   });
@@ -605,7 +605,11 @@ export default function VideoScreen() {
                     resizeMode="contain"
                   />
                 )}
-                <Text style={styles.channelName}>
+                <Text
+                  style={styles.channelName}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {displayName}
                 </Text>
                 <View style={styles.viewCountContainer}>
@@ -614,17 +618,16 @@ export default function VideoScreen() {
                     size={dimensions.isTablet ? fs(18) : fs(16)}
                     color="#737373"
                   />
-                  <Text style={styles.viewCount}>
+                  <Text
+                    style={styles.viewCount}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {videoDetails.views !== undefined
-                      ? `${formatNumber(videoDetails.views)} views`
-                      : "0 views"}
+                      ? `${formatNumber(videoDetails.views)}`
+                      : "0"}
                   </Text>
                 </View>
-                <Text style={styles.startedTime}>
-                  {videoDetails.publishedAt
-                    ? formatRelativeTime(videoDetails.publishedAt)
-                    : "moments ago"}
-                </Text>
               </View>
 
               {/* Action Buttons */}
@@ -801,7 +804,7 @@ export default function VideoScreen() {
 
             {/* Video Recommendations */}
             <View style={styles.recommendationsContainer}>
-              {isLoadingChannelVideos ? (
+              {isLoadingRelatedVideos ? (
                 <Text style={styles.startedTime}>
                   Loading recommendations...
                 </Text>
@@ -810,21 +813,21 @@ export default function VideoScreen() {
                   <VideoRecommendationCard
                     key={video.id}
                     thumbnailSource={
-                      video.thumbnailUrl
-                        ? { uri: video.thumbnailUrl }
+                      video.thumbnail
+                        ? { uri: video.thumbnail }
                         : require("@/assets/images/Image-2.png")
                     }
                     title={video.title}
-                    channelName={displayName}
+                    channelName={video.channel?.name || "Rhapsody TV"}
                     channelAvatar={
-                      videoDetails.channelAvatar
-                        ? { uri: videoDetails.channelAvatar }
+                      video.channel?.avatar
+                        ? { uri: video.channel.avatar }
                         : DEFAULT_PROFILE_AVATAR
                     }
-                    viewCount={`${formatNumber(video.viewCount)} views`}
+                    viewCount={`${formatNumber(video.views || 0)}`}
                     timeAgo={
-                      video.publishedAt
-                        ? formatRelativeTime(video.publishedAt)
+                      video.uploadDate
+                        ? formatRelativeTime(video.uploadDate)
                         : "Recently uploaded"
                     }
                     onPress={() =>
@@ -837,7 +840,7 @@ export default function VideoScreen() {
                 ))
               ) : (
                 <Text style={styles.startedTime}>
-                  No other videos from this channel yet.
+                  No related videos yet.
                 </Text>
               )}
             </View>

@@ -78,8 +78,10 @@ class VideoService {
   /**
    * Get related videos
    */
-  async getRelatedVideos(videoId: string): Promise<ApiResponse<Video[]>> {
-    return api.get<Video[]>(API_ENDPOINTS.VIDEOS.RELATED(videoId));
+  async getRelatedVideos(
+    videoId: string,
+  ): Promise<ApiResponse<PaginatedResponse<Video>>> {
+    return api.get<PaginatedResponse<Video>>(API_ENDPOINTS.VIDEOS.RELATED(videoId));
   }
 
   /**
