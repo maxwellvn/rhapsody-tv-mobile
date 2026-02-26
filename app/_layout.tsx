@@ -11,7 +11,7 @@ import { Href, router, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Linking, LogBox } from 'react-native';
+import { AppState, Linking, LogBox } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -19,13 +19,47 @@ import '../global.css';
 // Local notifications (download progress) still work fine in dev builds.
 LogBox.ignoreLogs(['expo-notifications: Android Push notifications']);
 
+// Global notification handler — suppress reminder/sync notifications when app is in foreground.
+// Download progress notifications (channel "download-progress") still show.
+import('expo-notifications')
+  .then((Notifications) => {
+    Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        const channelId = (notification.request.content as any).channelId;
+        const isDownload = channelId === 'download-progress';
+
+        // Always show download progress
+        if (isDownload) {
+          return {
+            shouldShowBanner: true,
+            shouldShowList: true,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+          };
+        }
+
+        // Suppress all other notifications when app is in foreground
+        const isAppActive = AppState.currentState === 'active';
+        return {
+          shouldShowBanner: !isAppActive,
+          shouldShowList: true,
+          shouldPlaySound: !isAppActive,
+          shouldSetBadge: true,
+        };
+      },
+    });
+  })
+  .catch(() => null);
+
 import { GlobalMiniPlayer } from '@/components/GlobalMiniPlayer';
 import { AppProvider } from '@/context/AppProvider';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/queries/useNotificationQueries';
 import { VideoOverlayProvider } from '@/context/VideoOverlayContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { channelService } from '@/services/channel.service';
 import { scheduleReminderNotificationService } from '@/services/schedule-reminder-notification.service';
+import { remotePushNotificationService } from '@/services/remote-push-notification.service';
 import { useRef } from 'react';
 
 export const unstable_settings = {
@@ -151,6 +185,32 @@ function NotificationRuntimeSync() {
   return null;
 }
 
+function RemotePushRegistration() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const attemptedRef = useRef(false);
+  const isExpoGo = Constants.appOwnership === 'expo';
+
+  useEffect(() => {
+    if (isExpoGo) return;
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
+      attemptedRef.current = false;
+      remotePushNotificationService.clearRegisteredTokenCache();
+      return;
+    }
+
+    if (attemptedRef.current) return;
+    attemptedRef.current = true;
+
+    remotePushNotificationService.registerCurrentDevice().catch(() => {
+      attemptedRef.current = false;
+    });
+  }, [isAuthenticated, isLoading, isExpoGo]);
+
+  return null;
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const segments = useSegments();
@@ -212,7 +272,7 @@ export default function RootLayout() {
       return undefined;
     };
 
-    const resolveRouteFromPayload = (payload: Record<string, unknown>): Href => {
+    const resolveRouteFromPayload = async (payload: Record<string, unknown>): Promise<Href> => {
       const isLikelyObjectId = (value?: string) =>
         !!value && /^[a-fA-F0-9]{24}$/.test(value);
 
@@ -251,6 +311,8 @@ export default function RootLayout() {
         ['channelSlug'],
         ['channel', 'slug'],
       ]);
+      const slotId = pickStringFromPayload(payload, [['slotId']]);
+      const startTime = pickStringFromPayload(payload, [['startTime']]);
       const type = typeof payload.type === 'string' ? payload.type : undefined;
 
       if (isLikelyObjectId(videoId))
@@ -267,13 +329,62 @@ export default function RootLayout() {
           },
         } as Href);
       }
-      if (channelSlug) return ('/(tabs)' as Href);
-      if (type === 'program_reminder' || type === 'channel_new_schedule')
+
+      // For program reminders, fetch the schedule to find the active liveStreamId
+      const isScheduleReminderLike =
+        type === 'program_reminder' ||
+        type === 'channel_new_schedule' ||
+        (!!slotId && !!channelSlug && !!startTime);
+
+      if (isScheduleReminderLike) {
+        if (channelSlug) {
+          try {
+            // Use the reminder slot date when available; "today" can miss late-night
+            // reminders around timezone boundaries and cause fallback navigation.
+            const scheduleDate =
+              typeof startTime === 'string' && /^\d{4}-\d{2}-\d{2}/.test(startTime)
+                ? startTime.slice(0, 10)
+                : new Date().toISOString().split('T')[0];
+            const response = await channelService.getChannelSchedule(channelSlug, scheduleDate, 50);
+            const slots = response.data;
+            if (slots && slots.length > 0) {
+              // Try to find the exact program slot first
+              const matchedSlot = slotId
+                ? slots.find((s) => s.id === slotId && s.liveStreamId)
+                : undefined;
+              if (matchedSlot?.liveStreamId) {
+                return ({
+                  pathname: '/live-video',
+                  params: { liveStreamId: matchedSlot.liveStreamId },
+                } as Href);
+              }
+              // Fallback: find any currently-airing program on this channel
+              const now = Date.now();
+              const liveSlot = slots.find(
+                (s) =>
+                  s.liveStreamId &&
+                  new Date(s.startTime).getTime() <= now &&
+                  new Date(s.endTime).getTime() > now,
+              );
+              if (liveSlot?.liveStreamId) {
+                return ({
+                  pathname: '/live-video',
+                  params: { liveStreamId: liveSlot.liveStreamId },
+                } as Href);
+              }
+            }
+          } catch {
+            // If fetch fails, fall through to schedule screen
+          }
+        }
         return ('/(tabs)/schedule' as Href);
+      }
+
+      if (channelSlug) return ('/(tabs)' as Href);
       return ('/notifications' as Href);
     };
 
-    const navigateFromResponse = (
+    const navigateFromResponse = async (
       response: {
         notification: { request: { content: { data: unknown } } };
       } | null,
@@ -284,7 +395,7 @@ export default function RootLayout() {
         | Record<string, unknown>
         | undefined;
       if (!payload) return;
-      const route = resolveRouteFromPayload(payload);
+      const route = await resolveRouteFromPayload(payload);
       if (isColdStart) {
         // Defer navigation: splash/auth flow will overwrite immediate router.push
         pendingNotificationRouteRef.current = route;
@@ -340,6 +451,7 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <AuthNavigationGuard />
+      <RemotePushRegistration />
       <NotificationRuntimeSync />
       <VideoOverlayProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

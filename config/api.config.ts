@@ -74,6 +74,7 @@ export const API_ENDPOINTS = {
     READ: (id: string) => `/notifications/${id}/read`,
     DELETE: (id: string) => `/notifications/${id}`,
     READ_ALL: "/notifications/read-all",
+    PUSH_TOKEN: "/notifications/push-token",
   },
 
   // Subscriptions
