@@ -11,7 +11,7 @@ import {
     PaginatedWatchlistResponseDto,
     User,
 } from "@/types/api.types";
-import { borderRadius, dimensions, fs, hp, spacing, wp } from "@/utils/responsive";
+import { dimensions, fs, hp, spacing, wp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -171,7 +171,7 @@ export default function ProfileScreen() {
         : require("@/assets/images/Image-1.png"),
       title: item.video?.title || "Untitled Video",
       badgeLabel: "Watchlist",
-      badgeColor: "#2563EB",
+      badgeColor: "#0284C7",
       showBadge: true,
       onPress: () =>
         item.video?.id && router.push(`/video?id=${item.video.id}`),
@@ -186,11 +186,13 @@ export default function ProfileScreen() {
         : require("@/assets/images/Image-4.png"),
       title: item.title || "Untitled Video",
       badgeLabel: "Downloaded",
-      badgeColor: "#2563EB",
+      badgeColor: "#0284C7",
       showBadge: true,
       onPress: () => item.videoId && router.push(`/video?id=${item.videoId}`),
     }))
     .slice(0, 4);
+
+  const profileUser = user ?? authUser ?? null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -210,8 +212,8 @@ export default function ProfileScreen() {
             style={styles.iconButton}
           >
             <Image
-              source={require("@/assets/Icons/bells.png")}
-              style={styles.headerIcon}
+              source={require("@/assets/Icons/Bell.png")}
+              style={styles.headerIconBell}
               resizeMode="contain"
             />
           </Pressable>
@@ -223,7 +225,7 @@ export default function ProfileScreen() {
           >
             <Image
               source={require("@/assets/Icons/settings.png")}
-              style={styles.headerIcon}
+              style={styles.headerIconSettings}
               resizeMode="contain"
             />
           </Pressable>
@@ -239,14 +241,21 @@ export default function ProfileScreen() {
         }
       >
         <View style={styles.contentInner}>
-          <ProfileInfo
-            avatarKey={user?.avatar}
-            gender={user?.gender}
-            seed={user?.id || user?.fullName || user?.email || "guest-user"}
-            name={user?.fullName || "Guest User"}
-            subtitle={user?.email || "Manage your account and saved videos"}
-            onEditPress={handleEditProfile}
-          />
+          {profileUser ? (
+            <ProfileInfo
+              avatarKey={profileUser.avatar}
+              gender={profileUser.gender}
+              seed={
+                profileUser.id ||
+                profileUser.fullName ||
+                profileUser.email ||
+                "profile-user"
+              }
+              name={profileUser.fullName || ""}
+              subtitle={profileUser.email || ""}
+              onEditPress={handleEditProfile}
+            />
+          ) : null}
 
           {loading && (
             <View style={styles.loadingContainer}>
@@ -325,19 +334,25 @@ const styles = StyleSheet.create({
     marginTop: hp(2),
   },
   iconButton: {
-    width: wp(36),
-    height: wp(36),
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
+    width: wp(40),
+    height: wp(40),
+    borderRadius: wp(20),
+    backgroundColor: "#F3F4F6",
     alignItems: "center",
     justifyContent: "center",
   },
   headerIcon: {
     width: wp(18),
-    height: hp(18),
-    tintColor: "#475569",
+    height: wp(18),
+  },
+  headerIconSettings: {
+    width: wp(20),
+    height: wp(20),
+    tintColor: "#4B5563",
+  },
+  headerIconBell: {
+    width: wp(40),
+    height: wp(40),
   },
   scrollView: {
     flex: 1,
