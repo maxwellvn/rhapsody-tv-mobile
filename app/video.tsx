@@ -89,8 +89,10 @@ export default function VideoScreen() {
     useChannelSubscriptionStatus(videoDetails.channelId);
 
   // Fetch semantically related videos (backend-ranked)
+  const relatedVideoId =
+    id && (videoDetails.title || videoDetails.playbackUrl) ? id : "";
   const { data: relatedVideosData, isLoading: isLoadingRelatedVideos } =
-    useRelatedVideos(id || "");
+    useRelatedVideos(relatedVideoId);
 
   // Fetch real comment count and latest comment for preview
   const { data: commentsPreviewData } = useVideoComments(id || "", 1, 1, 'newest');
@@ -588,7 +590,9 @@ export default function VideoScreen() {
             {/* Video Details */}
             <View style={styles.detailsContainer}>
               <Text style={styles.videoTitle}>
-                {videoDetails.title || "Video title unavailable"}
+                {isLoadingVideo
+                  ? "Loading video..."
+                  : (videoDetails.title || "Unable to load video")}
               </Text>
 
               <View style={styles.channelInfo}>
