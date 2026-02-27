@@ -13,7 +13,7 @@ import { ChannelVideoListItemDto } from "@/types/api.types";
 import { formatDuration, formatRelativeTime } from "@/utils/formatters";
 import { fs, hp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   ActivityIndicator,
   ImageSourcePropType,
@@ -31,7 +31,7 @@ type ChannelVideoItemProps = {
   onMenuPress: () => void;
 };
 
-function ChannelVideoItem({ video, channelSlug, onPress, onMenuPress }: ChannelVideoItemProps) {
+const ChannelVideoItem = memo(function ChannelVideoItem({ video, channelSlug, onPress, onMenuPress }: ChannelVideoItemProps) {
   const duration = useVideoDuration(video.playbackUrl, video.durationSeconds);
   return (
     <HorizontalVideoCard
@@ -42,6 +42,7 @@ function ChannelVideoItem({ video, channelSlug, onPress, onMenuPress }: ChannelV
       }
       duration={formatDuration(duration)}
       title={video.title}
+      programName={video.program?.title}
       channelName={channelSlug}
       viewCount={`${video.viewCount ?? 0} views`}
       timeAgo={video.publishedAt ? formatRelativeTime(video.publishedAt) : "moments ago"}
@@ -49,7 +50,7 @@ function ChannelVideoItem({ video, channelSlug, onPress, onMenuPress }: ChannelV
       onMenuPress={onMenuPress}
     />
   );
-}
+});
 
 type VideosTabProps = {
   slug: string;

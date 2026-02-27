@@ -11,20 +11,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
+  FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
+
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+import { useAlert } from "@/context/AlertContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function WatchHistoryScreen() {
+  const { showAlert } = useAlert();
   const { data, isLoading, refetch } = useWatchHistory(1, 100);
   const { mutate: clearHistory, isPending: isClearing } = useClearWatchHistory();
   const { mutate: removeFromHistory, isPending: isRemoving } = useRemoveFromHistory();
@@ -42,7 +44,7 @@ export default function WatchHistoryScreen() {
 
   const handleClearAll = () => {
     if (!items.length || isClearing) return;
-    Alert.alert("Clear Watch History", "Remove all watch history items?", [
+    showAlert("Clear Watch History", "Remove all watch history items?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Clear",
@@ -54,7 +56,7 @@ export default function WatchHistoryScreen() {
 
   const handleRemoveItem = (videoId?: string) => {
     if (!videoId || isRemoving) return;
-    Alert.alert("Remove from History", "Remove this video from watch history?", [
+    showAlert("Remove from History", "Remove this video from watch history?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Remove",
@@ -102,16 +104,21 @@ export default function WatchHistoryScreen() {
             <Text style={styles.emptyText}>No watch history yet</Text>
           </View>
         ) : (
-          <ScrollView
+          <FlatList
+            data={items}
+            keyExtractor={(item, index) => item.video?.id ?? String(index)}
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
             }
-          >
-            {items.map((item, index) => (
-              <View key={item.video?.id ?? index} style={styles.item}>
+            renderItem={({ item }) => (
+              <View style={styles.item}>
                 <Pressable
                   style={styles.itemMain}
                   onPress={() => item.video?.id && router.push(`/video?id=${item.video.id}`)}
@@ -123,12 +130,19 @@ export default function WatchHistoryScreen() {
                         : require("@/assets/images/Image-4.png")
                     }
                     style={styles.thumbnail}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    placeholder={{ blurhash }}
+                    cachePolicy="memory-disk"
                   />
                   <View style={styles.itemContent}>
                     <Text style={styles.title} numberOfLines={2}>
                       {item.video?.title || "Untitled Video"}
                     </Text>
+                    {item.video?.program?.title ? (
+                      <Text style={styles.programName} numberOfLines={1}>
+                        {item.video.program.title}
+                      </Text>
+                    ) : null}
                     {item.watchedAt ? (
                       <Text style={styles.meta}>
                         {formatRelativeTime(item.watchedAt)}
@@ -145,8 +159,8 @@ export default function WatchHistoryScreen() {
                   <Ionicons name="trash-outline" size={18} color="#DC2626" />
                 </Pressable>
               </View>
-            ))}
-          </ScrollView>
+            )}
+          />
         )}
       </SafeAreaView>
     </>
@@ -246,6 +260,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.medium,
     color: "#000000",
     marginBottom: hp(4),
+  },
+  programName: {
+    fontSize: fs(12),
+    fontFamily: FONTS.semibold,
+    color: "#1D4ED8",
+    marginBottom: hp(2),
   },
   meta: {
     fontSize: fs(12),

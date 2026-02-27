@@ -2,9 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { FONTS } from '@/styles/global';
 import { borderRadius, fs, hp, wp } from '@/utils/responsive';
 import { getCardDimensions, VIDEO_MEDIA_ASPECT_RATIO } from '@/utils/card-dimensions';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import {
-  Image,
   ImageSourcePropType,
   Pressable,
   StyleSheet,
@@ -12,23 +11,28 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
+
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
 
 type HorizontalVideoCardProps = {
   thumbnailSource: ImageSourcePropType;
   duration: string;
   title: string;
   channelName: string;
+  programName?: string;
   viewCount: string;
   timeAgo: string;
   onPress?: () => void;
   onMenuPress?: () => void;
 };
 
-export function HorizontalVideoCard({
+export const HorizontalVideoCard = memo(function HorizontalVideoCard({
   thumbnailSource,
   duration,
   title,
   channelName,
+  programName,
   viewCount,
   timeAgo,
   onPress,
@@ -52,7 +56,10 @@ export function HorizontalVideoCard({
         <Image
           source={thumbnailSource}
           style={styles.thumbnail}
-          resizeMode="cover"
+          contentFit="cover"
+          placeholder={{ blurhash }}
+          transition={200}
+          cachePolicy="memory-disk"
         />
         <View style={styles.durationBadge}>
           <Text style={styles.durationText}>{duration}</Text>
@@ -65,6 +72,9 @@ export function HorizontalVideoCard({
           {title}
         </Text>
 
+        {programName ? (
+          <Text style={styles.programName} numberOfLines={1}>{programName}</Text>
+        ) : null}
         <Text style={styles.channelName}>{channelName}</Text>
 
         <View style={styles.metaContainer}>
@@ -80,7 +90,7 @@ export function HorizontalVideoCard({
       </Pressable>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -123,6 +133,12 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: hp(4),
     lineHeight: fs(18),
+  },
+  programName: {
+    fontSize: fs(12),
+    fontFamily: FONTS.semibold,
+    color: '#1D4ED8',
+    marginBottom: hp(2),
   },
   channelName: {
     fontSize: fs(12),

@@ -1,6 +1,7 @@
 import { AppSpinner } from "@/components/app-spinner";
-import { useFeaturedVideos } from "@/hooks/queries/useHomepageQueries";
+import { useLiveStreams } from "@/hooks/queries/useHomepageQueries";
 import { FONTS } from "@/styles/global";
+import { LiveNowProgram } from "@/types/api.types";
 import { fs, spacing } from "@/utils/responsive";
 import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -9,73 +10,62 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+const blurhash = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 
-type FeaturedVideo = {
-  id: string;
-  title: string;
-  thumbnailUrl?: string;
-  channel?: { name?: string };
-  program?: { id?: string; title?: string; name?: string };
-  programTitle?: string;
-};
-
-function getProgramLabel(video: FeaturedVideo): string | null {
-  const direct =
-    video.program?.title?.trim() ||
-    video.program?.name?.trim() ||
-    video.programTitle?.trim();
-  return direct || null;
-}
-
-const FeaturedItem = memo(function FeaturedItem({ video }: { video: FeaturedVideo }) {
-  const programLabel = getProgramLabel(video);
-  const channelLabel = video.channel?.name?.trim() || "Channel";
-
+const LiveStreamItem = memo(function LiveStreamItem({
+  stream,
+}: {
+  stream: LiveNowProgram;
+}) {
   return (
     <Pressable
       style={styles.item}
-      onPress={() => router.push(`/video?id=${video.id}`)}
-    >
-      <Image
-        source={
-          video.thumbnailUrl
-            ? { uri: video.thumbnailUrl }
-            : require("@/assets/images/carusel-2.png")
+      onPress={() => {
+        if (stream.liveStreamId) {
+          router.push(`/live-video?liveStreamId=${stream.liveStreamId}`);
         }
-        style={styles.thumb}
-        contentFit="cover"
-        placeholder={{ blurhash }}
-        transition={200}
-        cachePolicy="memory-disk"
-      />
+      }}
+    >
+      <View>
+        <Image
+          source={
+            stream.thumbnailUrl || stream.channel?.coverImageUrl
+              ? { uri: stream.thumbnailUrl || stream.channel?.coverImageUrl }
+              : require("@/assets/images/carusel-2.png")
+          }
+          style={styles.thumb}
+          contentFit="cover"
+          placeholder={{ blurhash }}
+          transition={200}
+          cachePolicy="memory-disk"
+        />
+        {stream.isLive && (
+          <View style={styles.liveBadge}>
+            <Text style={styles.liveBadgeText}>Live</Text>
+          </View>
+        )}
+      </View>
       <View style={styles.meta}>
         <Text style={styles.videoTitle} numberOfLines={2}>
-          {video.title}
+          {stream.title}
         </Text>
-        {programLabel ? (
-          <Text style={styles.programName} numberOfLines={1}>
-            {programLabel}
-          </Text>
-        ) : null}
-        {channelLabel !== programLabel ? (
-          <Text style={styles.channelName} numberOfLines={1}>
-            {channelLabel}
-          </Text>
-        ) : null}
+        <Text style={styles.channelName} numberOfLines={1}>
+          {stream.channel?.name || "Channel"}
+        </Text>
       </View>
     </Pressable>
   );
 });
 
-export default function FeaturedPage() {
-  const { data: featuredVideos = [], isLoading, isError } = useFeaturedVideos(150);
+export default function LiveStreamsPage() {
+  const { data: livestreams = [], isLoading, isError } = useLiveStreams(50);
 
-  const renderItem = useCallback(({ item }: { item: FeaturedVideo }) => (
-    <FeaturedItem video={item} />
-  ), []);
+  const renderItem = useCallback(
+    ({ item }: { item: LiveNowProgram }) => <LiveStreamItem stream={item} />,
+    [],
+  );
 
-  const keyExtractor = useCallback((item: FeaturedVideo) => item.id, []);
+  const keyExtractor = useCallback((item: LiveNowProgram) => item.id, []);
 
   return (
     <>
@@ -90,7 +80,7 @@ export default function FeaturedPage() {
               contentFit="contain"
             />
           </Pressable>
-          <Text style={styles.title}>Featured Videos</Text>
+          <Text style={styles.title}>Live Streams</Text>
         </View>
 
         {isLoading ? (
@@ -99,15 +89,17 @@ export default function FeaturedPage() {
           </View>
         ) : isError ? (
           <View style={styles.loaderWrap}>
-            <Text style={styles.emptyText}>Unable to load featured videos right now.</Text>
+            <Text style={styles.emptyText}>
+              Unable to load live streams right now.
+            </Text>
           </View>
-        ) : featuredVideos.length === 0 ? (
+        ) : livestreams.length === 0 ? (
           <View style={styles.loaderWrap}>
-            <Text style={styles.emptyText}>No featured videos available.</Text>
+            <Text style={styles.emptyText}>No live streams available.</Text>
           </View>
         ) : (
           <FlatList
-            data={featuredVideos}
+            data={livestreams}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
             contentContainerStyle={styles.list}
@@ -136,7 +128,11 @@ const styles = StyleSheet.create({
   backIcon: { width: 22, height: 22, tintColor: "#111827" },
   title: { fontSize: fs(22), fontFamily: FONTS.bold, color: "#0F172A" },
   loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  list: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.md },
+  list: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
   item: {
     borderRadius: 14,
     borderWidth: 1,
@@ -145,9 +141,36 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   thumb: { width: "100%", height: 190, backgroundColor: "#E5E7EB" },
+  liveBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "#DC2626",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  liveBadgeText: {
+    fontSize: fs(11),
+    fontFamily: FONTS.bold,
+    color: "#FFFFFF",
+  },
   meta: { padding: spacing.md },
-  videoTitle: { fontSize: fs(16), fontFamily: FONTS.bold, color: "#0F172A" },
-  programName: { marginTop: 4, fontSize: fs(13), fontFamily: FONTS.semibold, color: "#1D4ED8" },
-  channelName: { marginTop: 4, fontSize: fs(13), fontFamily: FONTS.regular, color: "#64748B" },
-  emptyText: { fontSize: fs(14), fontFamily: FONTS.regular, color: "#64748B", textAlign: "center" },
+  videoTitle: {
+    fontSize: fs(16),
+    fontFamily: FONTS.bold,
+    color: "#0F172A",
+  },
+  channelName: {
+    marginTop: 4,
+    fontSize: fs(13),
+    fontFamily: FONTS.regular,
+    color: "#64748B",
+  },
+  emptyText: {
+    fontSize: fs(14),
+    fontFamily: FONTS.regular,
+    color: "#64748B",
+    textAlign: "center",
+  },
 });

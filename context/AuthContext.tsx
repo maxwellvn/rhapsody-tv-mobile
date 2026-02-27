@@ -34,6 +34,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     checkAuthStatus();
   }, []);
 
+  const validateProfileInBackground = async (cachedUser?: User | null) => {
+    try {
+      const response = await userService.getProfile();
+      const freshUser = response.data;
+      setUser(freshUser);
+      await storage.saveUserData(freshUser);
+    } catch (profileError: any) {
+      const status = profileError?.statusCode ?? profileError?.status;
+      if (status === 401 || status === 403 || status === 404) {
+        await Promise.all([storage.clearTokens(), storage.clearUserData()]);
+        setUser(null);
+      } else if (cachedUser) {
+        // Network/server issue: keep cached user so app can continue loading.
+        setUser(cachedUser);
+      }
+    }
+  };
+
   const checkAuthStatus = async () => {
     try {
       setIsLoading(true);
@@ -42,26 +60,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         storage.getUserData<User>(),
       ]);
 
-      if (token && userData) {
-        // Validate token against the backend by fetching fresh profile
-        try {
-          const response = await userService.getProfile();
-          // Token valid — use fresh profile data from server
-          const freshUser = response.data;
-          setUser(freshUser);
-          await storage.saveUserData(freshUser);
-        } catch (profileError: any) {
-          const status = profileError?.statusCode ?? profileError?.status;
-          if (status === 401 || status === 403 || status === 404) {
-            // Token invalid or user not found — clear auth, send to login
-            await Promise.all([storage.clearTokens(), storage.clearUserData()]);
-            setUser(null);
-          } else {
-            // Network error or server down — use cached data so offline still works
-            setUser(userData);
-          }
-        }
+      if (!token) {
+        setUser(null);
+        return;
       }
+
+      if (userData) {
+        // Use cached auth data immediately so app startup isn't blocked by network.
+        setUser(userData);
+        setIsLoading(false);
+
+        // Validate token against the backend in the background.
+        void validateProfileInBackground(userData);
+        return;
+      }
+
+      // Token exists but cached user is missing: fetch profile now so content can load.
+      await validateProfileInBackground(null);
     } catch (error) {
       console.error("Error checking auth status:", error);
     } finally {

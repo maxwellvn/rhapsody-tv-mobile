@@ -39,7 +39,7 @@ export function ChannelProfileHeader({ channel }: ChannelProfileHeaderProps) {
           <Image
             source={{ uri: channel.coverImageUrl }}
             style={styles.banner}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         ) : (
           <View style={styles.bannerPlaceholder} />
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   bannerContainer: {
     width: "100%",
     height: hp(150),
-    backgroundColor: "#1A237E",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   bannerPlaceholder: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#1A237E",
+    backgroundColor: "#F1F5F9",
   },
   profileSection: {
     paddingHorizontal: spacing.xl,

@@ -5,8 +5,8 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  Alert,
 } from "react-native";
+import { useAlert } from "@/context/AlertContext";
 import * as Clipboard from "expo-clipboard";
 import { FONTS } from "@/styles/global";
 import { fs, hp, spacing, wp, borderRadius } from "@/utils/responsive";
@@ -17,11 +17,12 @@ interface EspeesModalProps {
 }
 
 export function EspeesModal({ visible, onClose }: EspeesModalProps) {
+  const { showAlert } = useAlert();
   const code = "RORTV01";
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(code);
-    Alert.alert("Copied!", "Espees code copied to clipboard.");
+    showAlert("Copied!", "Espees code copied to clipboard.");
   };
 
   return (
@@ -58,29 +59,36 @@ export function EspeesModal({ visible, onClose }: EspeesModalProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
     padding: spacing.xl,
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
-    borderRadius: borderRadius.lg,
+    borderRadius: 20,
     padding: spacing.xxl,
     width: "100%",
     maxWidth: wp(340),
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 8,
   },
   title: {
     fontSize: fs(20),
     fontFamily: FONTS.bold,
-    color: "#000000",
+    color: "#1F2937",
     marginBottom: hp(8),
   },
   description: {
     fontSize: fs(14),
     fontFamily: FONTS.regular,
-    color: "#666666",
+    color: "#6B7280",
     textAlign: "center",
     marginBottom: hp(20),
   },
@@ -103,7 +111,7 @@ const styles = StyleSheet.create({
   },
   copyButton: {
     backgroundColor: "#0000FF",
-    borderRadius: borderRadius.sm,
+    borderRadius: 9999,
     paddingVertical: hp(12),
     paddingHorizontal: spacing.xxl,
     width: "100%",
@@ -117,12 +125,16 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     paddingVertical: hp(10),
+    paddingHorizontal: spacing.xxl,
     width: "100%",
     alignItems: "center",
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   closeButtonText: {
     fontSize: fs(14),
     fontFamily: FONTS.medium,
-    color: "#666666",
+    color: "#6B7280",
   },
 });

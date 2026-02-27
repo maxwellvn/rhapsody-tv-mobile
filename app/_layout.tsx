@@ -11,7 +11,7 @@ import { Href, router, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState, Linking, LogBox } from 'react-native';
+import { AppState, Linking, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -23,6 +23,20 @@ LogBox.ignoreLogs(['expo-notifications: Android Push notifications']);
 // Download progress notifications (channel "download-progress") still show.
 import('expo-notifications')
   .then((Notifications) => {
+    // Create the notification channel early so background push messages have a
+    // valid channel before the app is fully loaded / user is logged in.
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('admin-alerts', {
+        name: 'General notifications',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        sound: 'default',
+        enableLights: true,
+        enableVibrate: true,
+        showBadge: true,
+      }).catch(() => null);
+    }
+
     Notifications.setNotificationHandler({
       handleNotification: async (notification) => {
         const channelId = (notification.request.content as any).channelId;
@@ -38,12 +52,11 @@ import('expo-notifications')
           };
         }
 
-        // Suppress all other notifications when app is in foreground
-        const isAppActive = AppState.currentState === 'active';
+        // Show all other notifications (foreground + background)
         return {
-          shouldShowBanner: !isAppActive,
+          shouldShowBanner: true,
           shouldShowList: true,
-          shouldPlaySound: !isAppActive,
+          shouldPlaySound: true,
           shouldSetBadge: true,
         };
       },
@@ -60,6 +73,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { channelService } from '@/services/channel.service';
 import { scheduleReminderNotificationService } from '@/services/schedule-reminder-notification.service';
 import { remotePushNotificationService } from '@/services/remote-push-notification.service';
+import {
+  registerBackgroundNotificationTask,
+  unregisterBackgroundNotificationTask,
+} from '@/services/background-notification.service';
 import { useRef } from 'react';
 
 export const unstable_settings = {
@@ -197,6 +214,7 @@ function RemotePushRegistration() {
     if (!isAuthenticated) {
       attemptedRef.current = false;
       remotePushNotificationService.clearRegisteredTokenCache();
+      unregisterBackgroundNotificationTask();
       return;
     }
 
@@ -206,6 +224,8 @@ function RemotePushRegistration() {
     remotePushNotificationService.registerCurrentDevice().catch(() => {
       attemptedRef.current = false;
     });
+
+    registerBackgroundNotificationTask();
   }, [isAuthenticated, isLoading, isExpoGo]);
 
   return null;

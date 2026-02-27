@@ -15,7 +15,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Keyboard,
   Platform,
   Pressable,
@@ -25,6 +24,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useAlert } from "@/context/AlertContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type CommentsModalProps = {
@@ -35,6 +35,7 @@ type CommentsModalProps = {
 export function CommentsModal({ videoId, onClose }: CommentsModalProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const [activeTab, setActiveTab] = useState<"Top" | "Newest">("Top");
   const [comment, setComment] = useState("");
   const [keyboardOffset, setKeyboardOffset] = useState(0);
@@ -105,7 +106,7 @@ export function CommentsModal({ videoId, onClose }: CommentsModalProps) {
         setComment("");
         setReplyTarget(null);
       } catch (error: any) {
-        Alert.alert(
+        showAlert(
           replyTarget ? "Reply not sent" : "Comment not sent",
           error?.message || "Please try again.",
         );
@@ -191,7 +192,7 @@ export function CommentsModal({ videoId, onClose }: CommentsModalProps) {
         ...prev,
         [commentId]: (prev[commentId] ?? 0) + (currentLiked ? 1 : -1),
       }));
-      Alert.alert("Like failed", error?.message || "Please try again.");
+      showAlert("Like failed", error?.message || "Please try again.");
     }
   };
 
@@ -202,7 +203,7 @@ export function CommentsModal({ videoId, onClose }: CommentsModalProps) {
     isOwnComment: boolean,
   ) => {
     if (isOwnComment) {
-      Alert.alert("Your comment", "Choose an action", [
+      showAlert("Your comment", "Choose an action", [
         {
           text: "Delete",
           style: "destructive",
@@ -210,7 +211,7 @@ export function CommentsModal({ videoId, onClose }: CommentsModalProps) {
             try {
               await deleteCommentMutation.mutateAsync(commentId);
             } catch (error: any) {
-              Alert.alert(
+              showAlert(
                 "Delete failed",
                 error?.message || "Please try again.",
               );
@@ -225,7 +226,7 @@ export function CommentsModal({ videoId, onClose }: CommentsModalProps) {
       return;
     }
 
-    Alert.alert("Comment", `By ${authorName}`, [
+    showAlert("Comment", `By ${authorName}`, [
       {
         text: "Reply",
         onPress: () => setReplyTarget({ id: commentId, name: authorName }),

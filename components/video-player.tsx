@@ -197,6 +197,17 @@ export function VideoPlayer({
     return () => subscription.remove();
   }, [isFullscreen]);
 
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    StatusBar.setHidden(isFullscreen, "fade");
+
+    return () => {
+      // Ensure fullscreen players do not leave the app in a hidden-status-bar state.
+      StatusBar.setHidden(false, "fade");
+    };
+  }, [isFullscreen]);
+
   const handleToggleMute = () => {
     setIsMuted((prev) => !prev);
   };
@@ -389,8 +400,8 @@ export function VideoPlayer({
                       onPress={handleGoLive}
                       style={styles.goLiveButton}
                     >
-                      <Ionicons name="play-forward" size={14} color="#FFFFFF" />
-                      <Text style={styles.goLiveButtonText}>Go Live</Text>
+                      <Ionicons name="refresh" size={12} color="#FFFFFF" />
+                      <Text style={styles.goLiveButtonText}>Refresh</Text>
                     </Pressable>
                   ) : null}
                 </View>
@@ -589,17 +600,17 @@ const styles = StyleSheet.create({
   goLiveButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    height: 32,
+    gap: 4,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    height: 28,
     backgroundColor: "rgba(24, 24, 27, 0.78)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.16)",
   },
   goLiveButtonText: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   rightControls: {

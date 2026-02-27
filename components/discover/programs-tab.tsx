@@ -1,7 +1,7 @@
 import { usePrograms } from '@/hooks/queries/useHomepageQueries';
 import { FONTS } from '@/styles/global';
 import { useRouter } from 'expo-router';
-import { ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { EmptyState } from '@/components/empty-state';
 import { VideoCard } from './video-card';
 
@@ -51,9 +51,7 @@ export function ProgramsTab({ query = '' }: ProgramsTabProps) {
             <View key={program.id} style={styles.videoCardWrapper}>
               <VideoCard
                 imageSource={
-                  (program.channel?.coverImageUrl
-                    ? ({ uri: program.channel.coverImageUrl } as ImageSourcePropType)
-                    : (require('@/assets/images/Image-4.png') as ImageSourcePropType))
+                  program.channel?.coverImageUrl || require('@/assets/images/Image-4.png')
                 }
                 title={program.title}
                 badgeLabel={program.isLive ? 'Live' : 'Series'}

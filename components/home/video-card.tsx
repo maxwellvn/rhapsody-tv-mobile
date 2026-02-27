@@ -1,22 +1,24 @@
+import { memo, useMemo } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   Pressable,
-  ImageSourcePropType,
   useWindowDimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { FONTS } from '@/styles/global';
 import { fs, spacing, borderRadius, dimensions, wp } from '@/utils/responsive';
 import { getCardDimensions } from '@/utils/card-dimensions';
-import { useMemo } from 'react';
 
 const HOME_VIDEO_MEDIA_ASPECT_RATIO = 2;
 
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+
 type VideoCardProps = {
-  imageSource: ImageSourcePropType;
+  imageSource: string | number; // uri string or require() number
   title: string;
+  subtitle?: string;
   badgeLabel?: string;
   badgeColor?: string;
   showBadge?: boolean;
@@ -24,9 +26,10 @@ type VideoCardProps = {
   onPress?: () => void;
 };
 
-export function VideoCard({
+export const VideoCard = memo(function VideoCard({
   imageSource,
   title,
+  subtitle,
   badgeLabel,
   badgeColor = '#2563EB',
   showBadge = false,
@@ -40,6 +43,8 @@ export function VideoCard({
   );
 
   const isLive = badgeLabel?.toLowerCase() === 'live';
+
+  const source = typeof imageSource === 'string' ? { uri: imageSource } : imageSource;
 
   return (
     <Pressable
@@ -56,9 +61,13 @@ export function VideoCard({
     >
       <View style={styles.imageContainer}>
         <Image
-          source={imageSource}
+          source={source}
           style={styles.image}
-          resizeMode="cover"
+          contentFit="cover"
+          placeholder={{ blurhash }}
+          transition={200}
+          recyclingKey={typeof imageSource === 'string' ? imageSource : undefined}
+          cachePolicy="memory-disk"
         />
         {showBadge && badgeLabel && (
           <View style={[styles.badge, { backgroundColor: badgeColor }]}>
@@ -70,9 +79,14 @@ export function VideoCard({
       <Text style={styles.title} numberOfLines={2}>
         {title}
       </Text>
+      {subtitle ? (
+        <Text style={styles.subtitle} numberOfLines={1}>
+          {subtitle}
+        </Text>
+      ) : null}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -130,5 +144,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semibold,
     color: '#0F172A',
     lineHeight: dimensions.isTablet ? fs(19) : fs(16),
+  },
+  subtitle: {
+    marginTop: 2,
+    fontSize: dimensions.isTablet ? fs(12) : fs(10.5),
+    fontFamily: FONTS.medium,
+    color: '#1D4ED8',
   },
 });

@@ -1,10 +1,14 @@
+import { memo } from 'react';
 import { FONTS } from '@/styles/global';
 import { VIDEO_MEDIA_ASPECT_RATIO } from '@/utils/card-dimensions';
-import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Badge } from '../badge';
 
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+
 type VideoCardProps = {
-  imageSource: ImageSourcePropType;
+  imageSource: string | number;
   title: string;
   badgeLabel?: string;
   badgeColor?: string;
@@ -12,14 +16,16 @@ type VideoCardProps = {
   onPress?: () => void;
 };
 
-export function VideoCard({ 
-  imageSource, 
-  title, 
-  badgeLabel, 
-  badgeColor, 
+export const VideoCard = memo(function VideoCard({
+  imageSource,
+  title,
+  badgeLabel,
+  badgeColor,
   showBadge = false,
-  onPress 
+  onPress,
 }: VideoCardProps) {
+  const source = typeof imageSource === 'string' ? { uri: imageSource } : imageSource;
+
   return (
     <Pressable
       style={styles.container}
@@ -27,10 +33,13 @@ export function VideoCard({
       android_ripple={{ color: 'rgba(0, 0, 0, 0.06)', borderless: false }}
     >
       <View style={styles.imageContainer}>
-        <Image 
-          source={imageSource} 
+        <Image
+          source={source}
           style={styles.image}
-          resizeMode="cover"
+          contentFit="cover"
+          placeholder={{ blurhash }}
+          transition={150}
+          cachePolicy="memory-disk"
         />
         {showBadge && badgeLabel && (
           <View style={styles.badgeContainer}>
@@ -43,7 +52,7 @@ export function VideoCard({
       </Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

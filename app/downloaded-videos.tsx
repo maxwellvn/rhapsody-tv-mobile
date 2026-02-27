@@ -10,8 +10,6 @@ import { router, Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Image,
   Pressable,
   ScrollView,
   StatusBar,
@@ -19,6 +17,10 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
+
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+import { useAlert } from "@/context/AlertContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type DownloadedVideoItem = Awaited<
@@ -26,6 +28,7 @@ type DownloadedVideoItem = Awaited<
 >[number];
 
 export default function DownloadedVideosScreen() {
+  const { showAlert } = useAlert();
   const [items, setItems] = useState<DownloadedVideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDownloads, setActiveDownloads] = useState<ActiveDownload[]>([]);
@@ -66,7 +69,7 @@ export default function DownloadedVideosScreen() {
   };
 
   const handleRemove = (videoId: string) => {
-    Alert.alert("Remove Download", "Remove this downloaded video?", [
+    showAlert("Remove Download", "Remove this downloaded video?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Remove",
@@ -133,7 +136,9 @@ export default function DownloadedVideosScreen() {
                           : require("@/assets/images/Image-4.png")
                       }
                       style={styles.thumbnail}
-                      resizeMode="cover"
+                      contentFit="cover"
+                      placeholder={{ blurhash }}
+                      cachePolicy="memory-disk"
                     />
 
                     <View style={styles.itemContent}>
@@ -189,7 +194,9 @@ export default function DownloadedVideosScreen() {
                           : require("@/assets/images/Image-4.png")
                       }
                       style={styles.thumbnail}
-                      resizeMode="cover"
+                      contentFit="cover"
+                      placeholder={{ blurhash }}
+                      cachePolicy="memory-disk"
                     />
 
                     <View style={styles.itemContent}>

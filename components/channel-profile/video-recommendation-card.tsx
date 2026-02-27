@@ -2,12 +2,17 @@ import { Badge } from '@/components/badge';
 import { FONTS } from '@/styles/global';
 import { borderRadius, fs, hp, spacing, wp } from '@/utils/responsive';
 import { Ionicons } from '@expo/vector-icons';
-import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { memo } from 'react';
+
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
 
 type VideoRecommendationCardProps = {
   thumbnailSource: ImageSourcePropType;
   title: string;
   channelName: string;
+  programName?: string;
   channelAvatar: ImageSourcePropType;
   viewCount: string;
   timeAgo: string;
@@ -17,10 +22,11 @@ type VideoRecommendationCardProps = {
   onMenuPress?: () => void;
 };
 
-export function VideoRecommendationCard({
+export const VideoRecommendationCard = memo(function VideoRecommendationCard({
   thumbnailSource,
   title,
   channelName,
+  programName,
   channelAvatar,
   viewCount,
   timeAgo,
@@ -36,9 +42,12 @@ export function VideoRecommendationCard({
         <Image
           source={thumbnailSource}
           style={styles.thumbnail}
-          resizeMode="cover"
+          contentFit="cover"
+          placeholder={{ blurhash }}
+          transition={200}
+          cachePolicy="memory-disk"
         />
-        
+
         {/* Bottom Left - Live Badge */}
         {isLive && (
           <View style={styles.liveBadge}>
@@ -61,11 +70,16 @@ export function VideoRecommendationCard({
             {title}
           </Text>
 
+          {programName ? (
+            <Text style={styles.programName} numberOfLines={1}>{programName}</Text>
+          ) : null}
+
           <View style={styles.metaContainer}>
             <Image
               source={channelAvatar}
               style={styles.channelAvatar}
-              resizeMode="contain"
+              contentFit="contain"
+              cachePolicy="memory-disk"
             />
             <Text style={styles.channelName} numberOfLines={1}>{channelName}</Text>
             <Ionicons name="eye-outline" size={14} color="#737373" style={styles.eyeIcon} />
@@ -81,7 +95,7 @@ export function VideoRecommendationCard({
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -131,6 +145,12 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: hp(6),
     fontFamily: FONTS.bold,
+  },
+  programName: {
+    fontSize: fs(13),
+    fontFamily: FONTS.semibold,
+    color: '#1D4ED8',
+    marginBottom: hp(4),
   },
   metaContainer: {
     flexDirection: 'row',

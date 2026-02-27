@@ -13,7 +13,6 @@ import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     Pressable,
     ScrollView,
@@ -22,9 +21,11 @@ import {
     Text,
     View,
 } from "react-native";
+import { useAlert } from "@/context/AlertContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DownloadsScreen() {
+  const { showAlert } = useAlert();
   const { data: settings, isLoading } = useUserSettings();
   const { mutate: updateSettings, isPending: isUpdating } =
     useUpdateUserSettings();
@@ -53,7 +54,7 @@ export default function DownloadsScreen() {
   };
 
   const handleDeleteDownloads = () => {
-    Alert.alert("Delete Downloads", "Remove all downloaded videos?", [
+    showAlert("Delete Downloads", "Remove all downloaded videos?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",

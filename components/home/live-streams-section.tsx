@@ -1,16 +1,19 @@
+import { memo } from "react";
 import { useLiveStreams } from "@/hooks/queries/useHomepageQueries";
 import { FONTS } from "@/styles/global";
 import { dimensions, fs, spacing } from "@/utils/responsive";
 import { router } from "expo-router";
 import {
-  ImageSourcePropType,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { VideoCard } from "./video-card";
 
-export function LiveStreamsSection() {
+const fallbackImage = require("@/assets/images/carusel-2.png");
+
+export const LiveStreamsSection = memo(function LiveStreamsSection() {
   const { data: livestreams = [] } = useLiveStreams(10);
 
   const handlePress = (liveStreamId?: string) => {
@@ -22,27 +25,30 @@ export function LiveStreamsSection() {
     return null;
   }
 
+  const displayData = livestreams.slice(0, 8);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Live Streams</Text>
+        {livestreams.length > 8 && (
+          <Pressable onPress={() => router.push("/live-streams")}>
+            <Text style={styles.seeAllText}>See all</Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.grid}>
-        {livestreams.map((stream) => (
+        {displayData.map((stream) => (
           <View key={stream.id} style={styles.cardWrapper}>
             <VideoCard
               imageSource={
-                (stream.thumbnailUrl || stream.channel?.coverImageUrl
-                  ? ({
-                      uri: stream.thumbnailUrl || stream.channel?.coverImageUrl,
-                    } as ImageSourcePropType)
-                  : (require("@/assets/images/carusel-2.png") as ImageSourcePropType))
+                stream.thumbnailUrl || stream.channel?.coverImageUrl || fallbackImage
               }
               title={stream.title}
               badgeLabel={stream.isLive ? "Live" : "Stream"}
               badgeColor={stream.isLive ? "#DC2626" : "#2563EB"}
-              showBadge={true}
+              showBadge
               fitToContainer
               onPress={() => handlePress(stream.liveStreamId)}
             />
@@ -51,7 +57,7 @@ export function LiveStreamsSection() {
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -69,6 +75,11 @@ const styles = StyleSheet.create({
     fontSize: dimensions.isTablet ? fs(24) : fs(20),
     fontFamily: FONTS.bold,
     color: "#0F172A",
+  },
+  seeAllText: {
+    fontSize: dimensions.isTablet ? fs(14) : fs(13),
+    fontFamily: FONTS.semibold,
+    color: "#475569",
   },
   grid: {
     flexDirection: "row",

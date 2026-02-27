@@ -1,9 +1,9 @@
+import { memo } from "react";
 import { useFeaturedVideos } from "@/hooks/queries/useHomepageQueries";
 import { FONTS } from "@/styles/global";
 import { dimensions, fs, spacing } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import {
-  ImageSourcePropType,
   Pressable,
   StyleSheet,
   Text,
@@ -12,7 +12,9 @@ import {
 import { FeaturedVideosSkeleton } from "../skeleton";
 import { VideoCard } from "./video-card";
 
-export function FeaturedVideosSection() {
+const fallbackImage = require("@/assets/images/carusel-2.png");
+
+export const FeaturedVideosSection = memo(function FeaturedVideosSection() {
   const router = useRouter();
   const { data: featuredVideos = [], isLoading } = useFeaturedVideos(10);
 
@@ -28,19 +30,14 @@ export function FeaturedVideosSection() {
     return <FeaturedVideosSkeleton />;
   }
 
-  const displayData = featuredVideos.map((v) => ({
+  const displayData = featuredVideos.slice(0, 8).map((v) => ({
     id: v.id,
     title: v.title,
-    thumbnail: v.thumbnailUrl
-      ? ({ uri: v.thumbnailUrl } as ImageSourcePropType)
-      : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
-    badgeLabel: "Featured",
-    badgeColor: "#2563EB",
+    thumbnail: v.thumbnailUrl || fallbackImage,
   }));
 
   return (
     <View style={styles.container}>
-      {/* Section Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Featured Videos</Text>
         <Pressable onPress={handleSeeAllPress}>
@@ -51,7 +48,6 @@ export function FeaturedVideosSection() {
         <Text style={styles.noDataText}>No featured videos available</Text>
       )}
 
-      {/* Videos Grid */}
       {displayData.length > 0 && (
         <View style={styles.grid}>
           {displayData.map((item) => (
@@ -59,9 +55,9 @@ export function FeaturedVideosSection() {
               <VideoCard
                 imageSource={item.thumbnail}
                 title={item.title}
-                badgeLabel={item.badgeLabel}
-                badgeColor={item.badgeColor}
-                showBadge={true}
+                badgeLabel="Featured"
+                badgeColor="#2563EB"
+                showBadge
                 fitToContainer
                 onPress={() => handleCardPress(item.id)}
               />
@@ -71,7 +67,7 @@ export function FeaturedVideosSection() {
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

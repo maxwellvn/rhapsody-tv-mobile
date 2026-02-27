@@ -43,7 +43,9 @@ class RemotePushNotificationService {
     }
 
     const notifications = await this.getNotifications();
-    if (!notifications) return false;
+    if (!notifications) {
+      return false;
+    }
 
     if (Platform.OS === "android") {
       try {
@@ -53,7 +55,7 @@ class RemotePushNotificationService {
           vibrationPattern: [0, 250, 250, 250],
         });
       } catch {
-        // Keep token registration resilient even if channel setup fails.
+        // channel creation failed
       }
     }
 
@@ -69,25 +71,29 @@ class RemotePushNotificationService {
       return false;
     }
 
-    const projectId = this.getProjectId();
-    const tokenResponse = projectId
-      ? await notifications.getExpoPushTokenAsync({ projectId })
-      : await notifications.getExpoPushTokenAsync();
+    try {
+      const projectId = this.getProjectId();
+      const tokenResponse = projectId
+        ? await notifications.getExpoPushTokenAsync({ projectId })
+        : await notifications.getExpoPushTokenAsync();
 
-    const token = tokenResponse.data;
-    if (!token) return false;
+      const token = tokenResponse.data;
+      if (!token) return false;
 
-    if (this.registeredToken === token) {
+      if (this.registeredToken === token) {
+        return true;
+      }
+
+      await api.post<{ ok: true }>(API_ENDPOINTS.NOTIFICATIONS.PUSH_TOKEN, {
+        token,
+        platform: Platform.OS,
+      });
+
+      this.registeredToken = token;
       return true;
+    } catch {
+      return false;
     }
-
-    await api.post<{ ok: true }>(API_ENDPOINTS.NOTIFICATIONS.PUSH_TOKEN, {
-      token,
-      platform: Platform.OS,
-    });
-
-    this.registeredToken = token;
-    return true;
   }
 
   clearRegisteredTokenCache() {

@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(16),
   },
   inputFocused: {
-    borderColor: "#2563EB",
+    borderColor: "#1D4ED8",
   },
   inputDisabled: {
     backgroundColor: "#F3F4F6",
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginHorizontal: spacing.xl,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#1D4ED8",
     paddingVertical: hp(14),
     borderRadius: wp(12),
     alignItems: "center",

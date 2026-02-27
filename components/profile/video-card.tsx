@@ -5,10 +5,9 @@ import {
   VIDEO_MEDIA_ASPECT_RATIO,
 } from "@/utils/card-dimensions";
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
     GestureResponderEvent,
-    Image,
     ImageSourcePropType,
     Pressable,
     StyleSheet,
@@ -16,7 +15,9 @@ import {
     useWindowDimensions,
     View,
 } from "react-native";
-import { Badge } from "../badge";
+import { Image } from "expo-image";
+
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
 
 type ProfileVideoCardProps = {
   imageSource: ImageSourcePropType;
@@ -29,7 +30,7 @@ type ProfileVideoCardProps = {
   onRemovePress?: () => void;
 };
 
-export function ProfileVideoCard({
+export const ProfileVideoCard = memo(function ProfileVideoCard({
   imageSource,
   title,
   badgeLabel,
@@ -63,7 +64,7 @@ export function ProfileVideoCard({
       onPress={onPress}
     >
       <View style={styles.imageContainer}>
-        <Image source={imageSource} style={styles.image} resizeMode="cover" />
+        <Image source={imageSource} style={styles.image} contentFit="cover" placeholder={{ blurhash }} transition={200} cachePolicy="memory-disk" />
         {onRemovePress && (
           <Pressable
             style={styles.removeButton}
@@ -74,8 +75,13 @@ export function ProfileVideoCard({
           </Pressable>
         )}
         {showBadge && badgeLabel && (
-          <View style={styles.badgeContainer}>
-            <Badge label={badgeLabel} dotColor={badgeColor} />
+          <View
+            style={[
+              styles.badgeContainer,
+              { backgroundColor: badgeColor || "#2563EB" },
+            ]}
+          >
+            <Text style={styles.badgeText}>{badgeLabel}</Text>
           </View>
         )}
       </View>
@@ -84,15 +90,11 @@ export function ProfileVideoCard({
       </Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
-    shadowColor: "#94A3B8",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: "transparent",
   },
   fitContainer: {
     width: "100%",
@@ -105,6 +107,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     overflow: "hidden",
     backgroundColor: "#E5E5E5",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   image: {
     width: "100%",
@@ -123,14 +127,23 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     position: "absolute",
-    top: hp(8),
-    left: wp(8),
+    top: wp(4),
+    left: wp(4),
+    borderRadius: borderRadius.full,
+    paddingHorizontal: wp(6),
+    paddingVertical: wp(2),
+  },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: fs(8),
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.4,
   },
   title: {
-    marginTop: hp(8),
-    fontSize: fs(14),
-    fontFamily: FONTS.medium,
+    marginTop: 8,
+    fontSize: 15,
+    fontFamily: FONTS.semibold,
     color: "#000000",
-    lineHeight: fs(18),
+    lineHeight: 20,
   },
 });

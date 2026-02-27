@@ -36,7 +36,7 @@ export function ProgramProfileHeader({
         <Image 
           source={bannerImage}
           style={styles.banner}
-          resizeMode="cover"
+          resizeMode="contain"
         />
       </View>
 
@@ -97,17 +97,14 @@ const styles = StyleSheet.create({
   bannerContainer: {
     width: '100%',
     height: hp(120),
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
-    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   banner: {
     width: '100%',
-    height: hp(200),
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    height: '100%',
   },
   profileSection: {
     paddingHorizontal: spacing.xl,

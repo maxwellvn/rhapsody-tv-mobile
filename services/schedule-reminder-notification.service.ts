@@ -11,6 +11,7 @@ type ReminderRecord = {
   slotId: string;
   title: string;
   startTime: string;
+  channelSlug?: string;
   notificationId: string;
   duringNotificationIds?: string[];
   createdAt: string;
@@ -46,18 +47,7 @@ class ScheduleReminderNotificationService {
     try {
       const notifications = await import("expo-notifications");
 
-      if (!this.notificationHandlerSet) {
-        notifications.setNotificationHandler({
-          handleNotification: async () => ({
-            shouldShowBanner: true,
-            shouldShowList: true,
-            shouldPlaySound: true,
-            shouldSetBadge: true,
-          }),
-        });
-        this.notificationHandlerSet = true;
-      }
-
+      // Global handler is set in _layout.tsx — no need to set here.
       this.notifications = notifications;
       return notifications;
     } catch {
@@ -133,6 +123,7 @@ class ScheduleReminderNotificationService {
     startTime: string,
     endTime: string,
     slotId: string,
+    channelSlug?: string,
   ): Promise<string[]> {
     const startMs = new Date(startTime).getTime();
     const endMs = new Date(endTime).getTime();
@@ -168,6 +159,7 @@ class ScheduleReminderNotificationService {
               type: "program_reminder",
               slotId,
               startTime,
+              ...(channelSlug ? { channelSlug } : {}),
             },
           },
           trigger: {
@@ -191,8 +183,9 @@ class ScheduleReminderNotificationService {
     title: string;
     startTime: string;
     endTime: string;
+    channelSlug?: string;
   }): Promise<{ scheduled: boolean; key: string }> {
-    const { slotId, title, startTime, endTime } = params;
+    const { slotId, title, startTime, endTime, channelSlug } = params;
     const key = this.getReminderKey(slotId, startTime);
 
     const notifications = await this.getNotifications();
@@ -246,6 +239,7 @@ class ScheduleReminderNotificationService {
             type: "program_reminder",
             slotId,
             startTime,
+            ...(channelSlug ? { channelSlug } : {}),
           },
         },
         trigger: {
@@ -267,12 +261,14 @@ class ScheduleReminderNotificationService {
         startTime,
         endTime,
         slotId,
+        channelSlug,
       );
 
     reminderMap[key] = {
       slotId,
       title,
       startTime: startAt.toISOString(),
+      channelSlug,
       notificationId,
       duringNotificationIds,
       createdAt: new Date().toISOString(),
@@ -286,8 +282,9 @@ class ScheduleReminderNotificationService {
     title: string;
     startTime: string;
     endTime: string;
+    channelSlug?: string;
   }): Promise<{ scheduled: boolean; key: string }> {
-    const { slotId, title, startTime, endTime } = params;
+    const { slotId, title, startTime, endTime, channelSlug } = params;
     const key = this.getReminderKey(slotId, startTime);
     const reminderMap = await this.readReminderMap();
 
@@ -321,6 +318,7 @@ class ScheduleReminderNotificationService {
             type: "program_reminder",
             slotId,
             startTime,
+            ...(channelSlug ? { channelSlug } : {}),
           },
         },
         trigger: {
@@ -342,12 +340,14 @@ class ScheduleReminderNotificationService {
         startTime,
         endTime,
         slotId,
+        channelSlug,
       );
 
     reminderMap[key] = {
       slotId,
       title,
       startTime: startAt.toISOString(),
+      channelSlug,
       notificationId,
       duringNotificationIds,
       createdAt: new Date().toISOString(),

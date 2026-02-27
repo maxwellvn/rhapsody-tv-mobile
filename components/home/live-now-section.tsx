@@ -3,7 +3,8 @@ import { FONTS } from "@/styles/global";
 import { borderRadius, dimensions, fs, spacing, wp } from "@/utils/responsive";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { LiveNowSkeleton } from "../skeleton";
 
 export function LiveNowSection() {
@@ -61,7 +62,9 @@ export function LiveNowSection() {
               : require("@/assets/images/carusel-2.png")
           }
           style={styles.thumbnail}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
+          cachePolicy="memory-disk"
         />
 
         {/* Gradient overlay */}

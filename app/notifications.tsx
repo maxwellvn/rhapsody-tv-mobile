@@ -14,7 +14,6 @@ import { Href, router, Stack } from "expo-router";
 import { Linking } from "react-native";
 import { useCallback, useMemo, useState } from "react";
 import {
-    Alert,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -23,9 +22,11 @@ import {
     TextInput,
     View,
 } from "react-native";
+import { useAlert } from "@/context/AlertContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NotificationsScreen() {
+  const { showAlert } = useAlert();
   const [activeTab, setActiveTab] = useState<"All" | "Comments" | "Reminders">(
     "All",
   );
@@ -67,7 +68,7 @@ export default function NotificationsScreen() {
   };
 
   const handleMenu = () => {
-    Alert.alert("Notifications", "Choose an action", [
+    showAlert("Notifications", "Choose an action", [
       {
         text: "Mark all as read",
         onPress: () => markAllRead(),
@@ -240,7 +241,7 @@ export default function NotificationsScreen() {
   }, [activeTab, notifications, searchQuery]);
 
   const handleNotificationMenu = (notification: NotificationDto) => {
-    Alert.alert("Notification", "Choose an action", [
+    showAlert("Notification", "Choose an action", [
       {
         text: "Open",
         onPress: () => handleNotificationPress(notification),
@@ -260,7 +261,7 @@ export default function NotificationsScreen() {
           try {
             await deleteNotification(notification.id);
           } catch {
-            Alert.alert("Error", "Failed to delete notification.");
+            showAlert("Error", "Failed to delete notification.");
           }
         },
       },

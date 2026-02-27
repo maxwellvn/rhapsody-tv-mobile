@@ -80,6 +80,7 @@ const Loader = ({ onDismiss }: LoaderProps) => {
     >
       <Pressable style={styles.overlay} onPress={handleOverlayPress}>
         <View style={styles.wrapper}>
+          <View style={styles.card}>
           <View style={styles.spinner}>
             {rotations.map((rotation, index) => {
               // Each div gets a phase offset
@@ -135,6 +136,7 @@ const Loader = ({ onDismiss }: LoaderProps) => {
               );
             })}
           </View>
+          </View>
         </View>
       </Pressable>
     </Modal>
@@ -146,13 +148,26 @@ const styles = StyleSheet.create({
     flex: 1,
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   wrapper: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  card: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
   },
   spinner: {
     width: 9,

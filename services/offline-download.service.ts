@@ -362,12 +362,16 @@ class OfflineDownloadService {
       const ext = this.getFileExtension(input.playbackUrl);
       const destination = `${DOWNLOADS_DIR}${input.videoId}.${ext}`;
 
+      let lastProgressNotify = 0;
       const downloadResumable = FileSystem.createDownloadResumable(
         input.playbackUrl,
         destination,
         {},
         ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
           if (totalBytesExpectedToWrite <= 0) return;
+          const now = Date.now();
+          if (now - lastProgressNotify < 500 && totalBytesWritten < totalBytesExpectedToWrite) return;
+          lastProgressNotify = now;
           const progress = totalBytesWritten / totalBytesExpectedToWrite;
           this._updateActiveProgress(input.videoId, progress);
           if (input.onProgress) {

@@ -10,20 +10,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
+  FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
+import { useAlert } from "@/context/AlertContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+
 export default function WatchlistScreen() {
+  const { showAlert } = useAlert();
   const { data, isLoading, refetch } = useWatchlist(1, 100);
   const removeFromWatchlist = useRemoveFromWatchlist();
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
@@ -41,7 +43,7 @@ export default function WatchlistScreen() {
   const items = data?.items?.filter((item) => !!item.video) ?? [];
 
   const handleRemove = (videoId: string) => {
-    Alert.alert("Remove from Watchlist", "Remove this video from your watchlist?", [
+    showAlert("Remove from Watchlist", "Remove this video from your watchlist?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Remove",
@@ -94,21 +96,25 @@ export default function WatchlistScreen() {
             </Text>
           </View>
         ) : (
-          <ScrollView
+          <FlatList
+            data={items}
+            keyExtractor={(item, index) => item.video?.id ?? String(index)}
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
             }
-          >
-            {items.map((item, index) => {
+            renderItem={({ item }) => {
               const videoId = item.video?.id;
               const isRemoving = videoId ? removingIds.has(videoId) : false;
 
               return (
                 <Pressable
-                  key={videoId ?? index}
                   style={styles.item}
                   onPress={() =>
                     videoId && router.push(`/video?id=${videoId}`)
@@ -121,12 +127,19 @@ export default function WatchlistScreen() {
                         : require("@/assets/images/Image-4.png")
                     }
                     style={styles.thumbnail}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    placeholder={{ blurhash }}
+                    cachePolicy="memory-disk"
                   />
                   <View style={styles.itemContent}>
                     <Text style={styles.title} numberOfLines={2}>
                       {item.video?.title || "Untitled Video"}
                     </Text>
+                    {item.video?.program?.title ? (
+                      <Text style={styles.programName} numberOfLines={1}>
+                        {item.video.program.title}
+                      </Text>
+                    ) : null}
                     {item.video?.channel?.name ? (
                       <Text style={styles.meta} numberOfLines={1}>
                         {item.video.channel.name}
@@ -153,8 +166,8 @@ export default function WatchlistScreen() {
                   </Pressable>
                 </Pressable>
               );
-            })}
-          </ScrollView>
+            }}
+          />
         )}
       </SafeAreaView>
     </>
@@ -237,6 +250,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.medium,
     color: "#000000",
     marginBottom: hp(4),
+  },
+  programName: {
+    fontSize: fs(12),
+    fontFamily: FONTS.semibold,
+    color: "#1D4ED8",
+    marginBottom: hp(2),
   },
   meta: {
     fontSize: fs(12),

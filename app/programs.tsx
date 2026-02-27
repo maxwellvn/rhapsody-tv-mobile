@@ -4,11 +4,59 @@ import { FONTS } from "@/styles/global";
 import { fs, spacing } from "@/utils/responsive";
 import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { memo, useCallback } from "react";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+
+type ProgramItem = { id: string; title: string; thumbnailUrl?: string; channel?: { id?: string; slug?: string; name?: string; coverImageUrl?: string } };
+
+const ProgramListItem = memo(function ProgramListItem({ program }: { program: ProgramItem }) {
+  return (
+    <Pressable
+      style={styles.item}
+      onPress={() =>
+        router.push(
+          `/program-profile?id=${program.id}&channelId=${program.channel?.id || ""}&channelSlug=${program.channel?.slug || ""}`,
+        )
+      }
+    >
+      <Image
+        source={
+          program.thumbnailUrl
+            ? { uri: program.thumbnailUrl }
+            : program.channel?.coverImageUrl
+              ? { uri: program.channel.coverImageUrl }
+              : require("@/assets/images/Image-4.png")
+        }
+        style={styles.thumb}
+        contentFit="cover"
+        placeholder={{ blurhash }}
+        transition={200}
+        cachePolicy="memory-disk"
+      />
+      <View style={styles.meta}>
+        <Text style={styles.programTitle} numberOfLines={2}>
+          {program.title}
+        </Text>
+        <Text style={styles.channelName} numberOfLines={1}>
+          {program.channel?.name || "Program"}
+        </Text>
+      </View>
+    </Pressable>
+  );
+});
 
 export default function ProgramsPage() {
   const { data: programs = [], isLoading } = usePrograms(200);
+
+  const renderItem = useCallback(({ item }: { item: ProgramItem }) => (
+    <ProgramListItem program={item} />
+  ), []);
+
+  const keyExtractor = useCallback((item: ProgramItem) => item.id, []);
 
   return (
     <>
@@ -20,7 +68,7 @@ export default function ProgramsPage() {
             <Image
               source={require("@/assets/Icons/back.png")}
               style={styles.backIcon}
-              resizeMode="contain"
+              contentFit="contain"
             />
           </Pressable>
           <Text style={styles.title}>All Programs</Text>
@@ -31,39 +79,17 @@ export default function ProgramsPage() {
             <AppSpinner size="large" color="#1D4ED8" />
           </View>
         ) : (
-          <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-            {programs.map((program) => (
-              <Pressable
-                key={program.id}
-                style={styles.item}
-                onPress={() =>
-                  router.push(
-                    `/program-profile?id=${program.id}&channelId=${program.channel?.id || ""}&channelSlug=${program.channel?.slug || ""}`,
-                  )
-                }
-              >
-                <Image
-                  source={
-                    program.thumbnailUrl
-                      ? { uri: program.thumbnailUrl }
-                      : program.channel?.coverImageUrl
-                        ? { uri: program.channel.coverImageUrl }
-                        : require("@/assets/images/Image-4.png")
-                  }
-                  style={styles.thumb}
-                  resizeMode="cover"
-                />
-                <View style={styles.meta}>
-                  <Text style={styles.programTitle} numberOfLines={2}>
-                    {program.title}
-                  </Text>
-                  <Text style={styles.channelName} numberOfLines={1}>
-                    {program.channel?.name || "Program"}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
+          <FlatList
+            data={programs}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={6}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            removeClippedSubviews
+          />
         )}
       </SafeAreaView>
     </>

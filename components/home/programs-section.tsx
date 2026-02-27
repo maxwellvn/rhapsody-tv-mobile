@@ -1,9 +1,9 @@
+import { memo } from "react";
 import { usePrograms } from "@/hooks/queries/useHomepageQueries";
 import { FONTS } from "@/styles/global";
 import { dimensions, fs, spacing } from "@/utils/responsive";
 import { router } from "expo-router";
 import {
-  ImageSourcePropType,
   Pressable,
   StyleSheet,
   Text,
@@ -12,7 +12,9 @@ import {
 import { ProgramsSkeleton } from "../skeleton";
 import { VideoCard } from "./video-card";
 
-export function ProgramsSection() {
+const fallbackImage = require("@/assets/images/Image-4.png");
+
+export const ProgramsSection = memo(function ProgramsSection() {
   const { data: programsData = [], isLoading } = usePrograms(10);
 
   const handleCardPress = (
@@ -29,31 +31,28 @@ export function ProgramsSection() {
     router.push("/programs");
   };
 
-  // Show loading state with skeleton
   if (isLoading) {
     return <ProgramsSkeleton />;
   }
 
   const displayData = programsData
     .filter((program) => (program.videoCount ?? 0) > 0)
+    .slice(0, 8)
     .map((program) => ({
       id: program.id,
       channelId: program.channel?.id,
       channelSlug: program.channel?.slug,
       title: program.title,
-      coverImageUrl: program.thumbnailUrl
-        ? ({ uri: program.thumbnailUrl } as ImageSourcePropType)
-        : program.channel?.coverImageUrl
-          ? ({ uri: program.channel.coverImageUrl } as ImageSourcePropType)
-          : (require("@/assets/images/Image-4.png") as ImageSourcePropType),
+      coverImageUrl:
+        program.thumbnailUrl ||
+        program.channel?.coverImageUrl ||
+        fallbackImage,
       badgeLabel: program.isLive ? "Live" : "Series",
       badgeColor: program.isLive ? "#DC2626" : "#2563EB",
-      isLive: program.isLive,
     }));
 
   return (
     <View style={styles.container}>
-      {/* Section Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Programs</Text>
         <Pressable onPress={handleSeeAllPress}>
@@ -64,7 +63,6 @@ export function ProgramsSection() {
         <Text style={styles.noDataText}>No programs available</Text>
       )}
 
-      {/* Programs Grid */}
       {displayData.length > 0 && (
         <View style={styles.grid}>
           {displayData.map((program) => (
@@ -74,7 +72,7 @@ export function ProgramsSection() {
                 title={program.title}
                 badgeLabel={program.badgeLabel}
                 badgeColor={program.badgeColor}
-                showBadge={true}
+                showBadge
                 fitToContainer
                 onPress={() =>
                   handleCardPress(
@@ -90,7 +88,7 @@ export function ProgramsSection() {
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

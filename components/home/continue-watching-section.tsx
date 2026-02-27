@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useContinueWatching } from "@/hooks/queries/useHomepageQueries";
 import { FONTS } from "@/styles/global";
 import {
@@ -10,7 +11,6 @@ import {
 } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import {
-  ImageSourcePropType,
   Pressable,
   StyleSheet,
   Text,
@@ -19,7 +19,9 @@ import {
 import { Skeleton } from "../skeleton";
 import { VideoCard } from "./video-card";
 
-export function ContinueWatchingSection() {
+const fallbackImage = require("@/assets/images/carusel-2.png");
+
+export const ContinueWatchingSection = memo(function ContinueWatchingSection() {
   const router = useRouter();
   const { data: continueWatchingData = [], isLoading } = useContinueWatching();
 
@@ -30,7 +32,6 @@ export function ContinueWatchingSection() {
     router.push("/watch-history");
   };
 
-  // Show loading state with skeleton
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -61,14 +62,9 @@ export function ContinueWatchingSection() {
     );
   }
 
-  const displayData = continueWatchingData.map((item) => ({
-    imageSource: item.video.thumbnailUrl
-      ? ({ uri: item.video.thumbnailUrl } as ImageSourcePropType)
-      : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
+  const displayData = continueWatchingData.slice(0, 8).map((item) => ({
+    imageSource: item.video.thumbnailUrl || fallbackImage,
     title: item.video.title,
-    badgeLabel: undefined,
-    badgeColor: undefined,
-    showBadge: false,
     videoId: item.video.id,
     progressSeconds: item.progressSeconds ?? 0,
   }));
@@ -92,9 +88,6 @@ export function ContinueWatchingSection() {
               <VideoCard
                 imageSource={item.imageSource}
                 title={item.title}
-                badgeLabel={item.badgeLabel}
-                badgeColor={item.badgeColor}
-                showBadge={item.showBadge}
                 fitToContainer
                 onPress={() => handleCardPress(item.videoId, item.progressSeconds)}
               />
@@ -104,7 +97,7 @@ export function ContinueWatchingSection() {
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

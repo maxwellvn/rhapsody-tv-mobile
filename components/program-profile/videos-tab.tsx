@@ -10,7 +10,7 @@ import { FONTS } from "@/styles/global";
 import { ChannelVideoListItemDto } from "@/types/api.types";
 import { formatDuration, formatNumber, formatRelativeTime } from "@/utils/formatters";
 import { fs, hp } from "@/utils/responsive";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 type ProgramVideoItemProps = {
@@ -20,7 +20,7 @@ type ProgramVideoItemProps = {
   onMenuPress: () => void;
 };
 
-function ProgramVideoItem({
+const ProgramVideoItem = memo(function ProgramVideoItem({
   video,
   channelName,
   onPress,
@@ -43,7 +43,7 @@ function ProgramVideoItem({
       onMenuPress={onMenuPress}
     />
   );
-}
+});
 
 type VideosTabProps = {
   videos: ChannelVideoListItemDto[];

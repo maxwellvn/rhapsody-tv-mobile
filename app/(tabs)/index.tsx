@@ -1,5 +1,7 @@
 import { BottomNav } from "@/components/bottom-nav";
+import { GetRhapsodyBanner } from "@/components/common/GetRhapsodyBanner";
 import { ChannelsListSection } from "@/components/home/channels-list-section";
+import { DailyDevotionalModal } from "@/components/home/DailyDevotionalModal";
 import { useUnreadNotificationCount } from "@/hooks/queries/useNotificationQueries";
 import { homepageKeys } from "@/hooks/queries/useHomepageQueries";
 import { SearchBar } from "@/components/search-bar";
@@ -118,11 +120,17 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
+        {/* Get Rhapsody App Banner */}
+        <GetRhapsodyBanner />
+
         <ChannelsListSection />
       </ScrollView>
 
       {/* Bottom Navigation */}
       <BottomNav activeTab="Home" onTabPress={handleTabPress} />
+
+      {/* Daily Devotional Popup */}
+      <DailyDevotionalModal />
     </SafeAreaView>
   );
 }

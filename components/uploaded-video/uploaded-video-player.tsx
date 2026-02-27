@@ -249,6 +249,17 @@ export function UploadedVideoPlayer({
     return () => subscription.remove();
   }, [isFullscreen]);
 
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    StatusBar.setHidden(isFullscreen, "fade");
+
+    return () => {
+      // Ensure fullscreen players do not leave the app in a hidden-status-bar state.
+      StatusBar.setHidden(false, "fade");
+    };
+  }, [isFullscreen]);
+
   const handleToggleMute = () => {
     setIsMuted((prev) => !prev);
   };

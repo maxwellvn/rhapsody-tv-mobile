@@ -12,7 +12,7 @@ import { FONTS } from "@/styles/global";
 import { ChannelVideoListItemDto } from "@/types/api.types";
 import { formatDuration, formatNumber, formatRelativeTime } from "@/utils/formatters";
 import { fs, hp } from "@/utils/responsive";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 type ProgramLatestVideoItemProps = {
@@ -22,7 +22,7 @@ type ProgramLatestVideoItemProps = {
   onMenuPress: () => void;
 };
 
-function ProgramLatestVideoItem({
+const ProgramLatestVideoItem = memo(function ProgramLatestVideoItem({
   video,
   channelName,
   onPress,
@@ -38,6 +38,7 @@ function ProgramLatestVideoItem({
       }
       duration={formatDuration(duration)}
       title={video.title}
+      programName={video.program?.title}
       channelName={channelName}
       viewCount={`${formatNumber(video.viewCount || 0)} views`}
       timeAgo={video.publishedAt ? formatRelativeTime(video.publishedAt) : "moments ago"}
@@ -45,7 +46,7 @@ function ProgramLatestVideoItem({
       onMenuPress={onMenuPress}
     />
   );
-}
+});
 
 type HomeTabProps = {
   videos: ChannelVideoListItemDto[];
@@ -132,6 +133,7 @@ export function HomeTab({
               : require("@/assets/images/Image-11.png")
           }
           title={featured.title}
+          programName={featured.program?.title}
           channelAvatar={
             channelAvatarUrl ? { uri: channelAvatarUrl } : DEFAULT_PROFILE_AVATAR
           }

@@ -126,7 +126,7 @@ export default function ProgramProfileScreen() {
         <SafeAreaView style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
           <Text style={{ color: "#666666", marginBottom: 12 }}>This program is no longer available.</Text>
           <Pressable onPress={() => router.replace("/(tabs)/schedule")}>
-            <Text style={{ color: "#0000FF", fontWeight: "600" }}>Go to Schedule</Text>
+            <Text style={{ color: "#1D4ED8", fontWeight: "600" }}>Go to Schedule</Text>
           </Pressable>
         </SafeAreaView>
       </>

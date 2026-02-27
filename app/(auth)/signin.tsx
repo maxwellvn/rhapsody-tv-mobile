@@ -68,11 +68,7 @@ export default function AuthScreen() {
   const isSubmitting = isLoading || isKingsChatLoading;
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/onboarding");
-    }
+    router.replace("/onboarding");
   };
 
   const animateToTab = (nextTab: AuthTab) => {

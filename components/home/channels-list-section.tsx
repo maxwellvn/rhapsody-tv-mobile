@@ -5,8 +5,6 @@ import { borderRadius, dimensions, fs, MAX_PHONE_WIDTH, spacing, wp } from "@/ut
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  Alert,
-  Image,
   ImageSourcePropType,
   Pressable,
   StyleSheet,
@@ -14,9 +12,12 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { Image } from "expo-image";
+import { useAlert } from "@/context/AlertContext";
 import { Skeleton } from "../skeleton";
 
 export function ChannelsListSection() {
+  const { showAlert } = useAlert();
   const { data: channelsData = [], isLoading } = useChannels(10);
   const [resolvingChannelId, setResolvingChannelId] = useState<string | null>(null);
   const { width: windowWidth } = useWindowDimensions();
@@ -58,13 +59,13 @@ export function ChannelsListSection() {
         )?.id;
 
       if (!liveStreamId) {
-        Alert.alert("No livestream found", "This channel has no stream available yet.");
+        showAlert("No livestream found", "This channel has no stream available yet.");
         return;
       }
 
       router.push(`/live-video?liveStreamId=${liveStreamId}`);
     } catch {
-      Alert.alert("Unable to open channel", "Could not load this livestream right now.");
+      showAlert("Unable to open channel", "Could not load this livestream right now.");
     } finally {
       setResolvingChannelId(null);
     }
@@ -173,7 +174,9 @@ export function ChannelsListSection() {
                   <Image
                     source={channel.coverSource}
                     style={styles.thumbnail}
-                    resizeMode="cover"
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
+                    transition={200}
                   />
                   {/* LIVE badge */}
                   <View style={styles.liveBadge}>
@@ -188,7 +191,8 @@ export function ChannelsListSection() {
                     <Image
                       source={channel.logoSource}
                       style={styles.channelLogo}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
                     />
                   </View>
                   <View style={styles.footerText}>
@@ -284,7 +288,7 @@ const styles = StyleSheet.create({
   thumbnailWrapper: {
     width: "100%",
     aspectRatio: 16 / 9,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#FFFFFF",
     position: "relative",
   },
   thumbnail: {

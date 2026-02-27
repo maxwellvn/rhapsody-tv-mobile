@@ -22,8 +22,10 @@ import { useCreatePaymentIntent } from "@/hooks/queries/useDonationQueries";
 import { donationService } from "@/services/donation.service";
 import { useToast } from "@/context/ToastContext";
 import { useVideoOverlay } from "@/context/VideoOverlayContext";
+import { STRIPE_PUBLISHABLE_KEY } from "@/context/AppProvider";
 
 import {
+  CardForm as StripeCardForm,
   CardField as StripeCardField,
   useConfirmPayment,
 } from "@stripe/stripe-react-native";
@@ -89,9 +91,22 @@ export default function DonateScreen() {
 
     setIsProcessing(true);
     try {
-      const { clientSecret, donationId } = await createPaymentIntent.mutateAsync({
+      const { clientSecret, donationId, publishableKey } = await createPaymentIntent.mutateAsync({
         amount: activeAmount,
       });
+
+      // Prevent confusing Stripe errors like "No such payment_intent" when
+      // backend and app are configured with keys from different Stripe accounts.
+      if (
+        publishableKey &&
+        STRIPE_PUBLISHABLE_KEY &&
+        publishableKey !== STRIPE_PUBLISHABLE_KEY
+      ) {
+        showError(
+          "Stripe keys do not match. Update EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY to the same Stripe account as the backend and reload the app.",
+        );
+        return;
+      }
 
       const { error } = await confirmPayment(clientSecret, {
         paymentMethodType: "Card",
@@ -178,7 +193,7 @@ export default function DonateScreen() {
                 <Ionicons
                   name="card-outline"
                   size={fs(22)}
-                  color={selectedMethod === "stripe" ? "#0000FF" : "#737373"}
+                  color={selectedMethod === "stripe" ? "#1D4ED8" : "#737373"}
                 />
                 <Text
                   style={[
@@ -199,7 +214,7 @@ export default function DonateScreen() {
                 <Ionicons
                   name="wallet-outline"
                   size={fs(22)}
-                  color={selectedMethod === "espees" ? "#0000FF" : "#737373"}
+                  color={selectedMethod === "espees" ? "#1D4ED8" : "#737373"}
                 />
                 <Text
                   style={[
@@ -260,22 +275,45 @@ export default function DonateScreen() {
               {/* Card Details */}
               <View style={styles.section}>
                 <Text style={styles.label}>Card Details</Text>
-                <View style={styles.cardFieldContainer}>
-                  <StripeCardField
-                    postalCodeEnabled={false}
-                    placeholders={{ number: "Card number" }}
-                    cardStyle={{
-                      backgroundColor: "#FFFFFF",
-                      textColor: "#000000",
-                      placeholderColor: "#999999",
-                      fontSize: 16,
-                      borderWidth: 0,
-                    }}
-                    style={styles.cardField}
-                    onCardChange={(details: any) => {
-                      setCardComplete(details.complete);
-                    }}
-                  />
+                <View
+                  style={[
+                    styles.cardFieldContainer,
+                    Platform.OS === "android" && styles.cardFormContainerAndroid,
+                  ]}
+                >
+                  {Platform.OS === "android" ? (
+                    <StripeCardForm
+                      style={styles.cardForm}
+                      cardStyle={{
+                        backgroundColor: "#FFFFFF",
+                        textColor: "#000000",
+                        placeholderColor: "#999999",
+                        borderColor: "#E5E5E5",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        fontSize: 16,
+                      }}
+                      onFormComplete={(details: any) => {
+                        setCardComplete(!!details?.complete);
+                      }}
+                    />
+                  ) : (
+                    <StripeCardField
+                      postalCodeEnabled={false}
+                      placeholders={{ number: "Card number" }}
+                      cardStyle={{
+                        backgroundColor: "#FFFFFF",
+                        textColor: "#000000",
+                        placeholderColor: "#999999",
+                        fontSize: 16,
+                        borderWidth: 0,
+                      }}
+                      style={styles.cardField}
+                      onCardChange={(details: any) => {
+                        setCardComplete(!!details?.complete);
+                      }}
+                    />
+                  )}
                 </View>
               </View>
 
@@ -322,7 +360,7 @@ export default function DonateScreen() {
               <View style={styles.espeesCard}>
                 <View style={styles.espeesIconRow}>
                   <View style={styles.espeesIconContainer}>
-                    <Ionicons name="wallet" size={fs(20)} color="#0000FF" />
+                    <Ionicons name="wallet" size={fs(20)} color="#1D4ED8" />
                   </View>
                   <Text style={styles.espeesCardTitle}>
                     Espees Donation Code
@@ -456,8 +494,8 @@ const styles = StyleSheet.create({
     paddingVertical: hp(14),
   },
   methodCardActive: {
-    borderColor: "#0000FF",
-    backgroundColor: "#F0F0FF",
+    borderColor: "#1D4ED8",
+    backgroundColor: "#EEF2FF",
   },
   methodLabel: {
     fontSize: fs(15),
@@ -465,7 +503,7 @@ const styles = StyleSheet.create({
     color: "#737373",
   },
   methodLabelActive: {
-    color: "#0000FF",
+    color: "#1D4ED8",
     fontFamily: FONTS.semibold,
   },
 
@@ -486,8 +524,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   presetButtonActive: {
-    borderColor: "#0000FF",
-    backgroundColor: "#F0F0FF",
+    borderColor: "#1D4ED8",
+    backgroundColor: "#EEF2FF",
   },
   presetText: {
     fontSize: fs(16),
@@ -495,7 +533,7 @@ const styles = StyleSheet.create({
     color: "#0F0F0F",
   },
   presetTextActive: {
-    color: "#0000FF",
+    color: "#1D4ED8",
   },
 
   /* Custom Input */
@@ -530,14 +568,27 @@ const styles = StyleSheet.create({
     borderColor: "#E5E5E5",
     overflow: "hidden",
   },
+  cardFormContainerAndroid: {
+    overflow: "visible",
+    backgroundColor: "transparent",
+    padding: 0,
+    borderWidth: 0,
+    borderColor: "transparent",
+    borderRadius: 0,
+    minHeight: Math.max(hp(320), 320),
+  },
   cardField: {
     width: "100%",
     height: hp(50),
   },
+  cardForm: {
+    width: "100%",
+    height: Math.max(hp(320), 320),
+  },
 
   /* Donate Button */
   donateButton: {
-    backgroundColor: "#0000FF",
+    backgroundColor: "#1D4ED8",
     borderRadius: borderRadius.sm,
     paddingVertical: hp(16),
     alignItems: "center",
@@ -586,7 +637,7 @@ const styles = StyleSheet.create({
     width: wp(36),
     height: wp(36),
     borderRadius: wp(18),
-    backgroundColor: "#F0F0FF",
+    backgroundColor: "#EEF2FF",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -615,11 +666,11 @@ const styles = StyleSheet.create({
   espeesCode: {
     fontSize: fs(28),
     fontFamily: FONTS.bold,
-    color: "#0000FF",
+    color: "#1D4ED8",
     letterSpacing: 4,
   },
   copyCodeButton: {
-    backgroundColor: "#0000FF",
+    backgroundColor: "#1D4ED8",
     borderRadius: borderRadius.sm,
     paddingVertical: hp(14),
     flexDirection: "row",

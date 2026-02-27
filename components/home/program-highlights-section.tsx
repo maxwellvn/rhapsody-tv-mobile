@@ -3,7 +3,6 @@ import { FONTS } from "@/styles/global";
 import { dimensions, fs, spacing } from "@/utils/responsive";
 import { router } from "expo-router";
 import {
-  ImageSourcePropType,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -29,13 +28,12 @@ export function ProgramHighlightsSection() {
     return <ProgramHighlightsSkeleton />;
   }
 
+  const fallbackImage = require("@/assets/images/carusel-2.png");
   const displayData = highlightsData.map((highlight) => ({
     id: highlight.id,
     videoId: highlight.id,
     title: highlight.title,
-    thumbnailUrl: highlight.thumbnailUrl
-      ? ({ uri: highlight.thumbnailUrl } as ImageSourcePropType)
-      : (require("@/assets/images/carusel-2.png") as ImageSourcePropType),
+    thumbnailUrl: highlight.thumbnailUrl || fallbackImage,
     badgeLabel: "Series",
     badgeColor: "#2563EB",
   }));

@@ -20,10 +20,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ReactNode, useCallback, useState } from "react";
+import { ReactNode, memo, useCallback, useState } from "react";
 import {
-  Image,
-  ImageSourcePropType,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -31,6 +29,8 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
+import { Image as RNImage } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 /* ─── Filter categories ─── */
@@ -46,21 +46,20 @@ const CATEGORY_ICONS: Record<Category, keyof typeof Ionicons.glyphMap> = {
 };
 
 /* ─── Helpers ─── */
-const fallbackImage = require("@/assets/images/carusel-2.png") as ImageSourcePropType;
-const fallbackLogo = require("@/assets/logo/Logo.png") as ImageSourcePropType;
+const fallbackImage = require("@/assets/images/carusel-2.png");
+const fallbackLogo = require("@/assets/logo/Logo.png");
 const imgSrc = (
   url?: string | null,
   type: "media" | "logo" = "media",
-): ImageSourcePropType => {
-  if (url) {
-    return { uri: url };
-  }
-
+): string | number => {
+  if (url) return url;
   return type === "logo" ? fallbackLogo : fallbackImage;
 };
 
+const blurhash = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4';
+
 /* ─── Search Result Row ─── */
-function SearchResultRow({
+const SearchResultRow = memo(function SearchResultRow({
   title,
   subtitle,
   badgeLabel,
@@ -73,11 +72,12 @@ function SearchResultRow({
   subtitle?: string;
   badgeLabel?: string;
   badgeColor?: string;
-  imageSource: ImageSourcePropType;
+  imageSource: string | number;
   thumbnailVariant?: "media" | "logo";
   onPress?: () => void;
 }) {
   const isLogo = thumbnailVariant === "logo";
+  const source = typeof imageSource === 'string' ? { uri: imageSource } : imageSource;
 
   return (
     <Pressable
@@ -86,10 +86,13 @@ function SearchResultRow({
       android_ripple={{ color: "rgba(15,23,42,0.06)", borderless: false }}
     >
       <View style={[rowStyles.thumbWrap, isLogo && rowStyles.logoThumbWrap]}>
-        <Image
-          source={imageSource}
+        <ExpoImage
+          source={source}
           style={rowStyles.thumb}
-          resizeMode={isLogo ? "contain" : "cover"}
+          contentFit={isLogo ? "contain" : "cover"}
+          placeholder={{ blurhash }}
+          transition={150}
+          cachePolicy="memory-disk"
         />
         {!!badgeLabel && (
           <View style={[rowStyles.badge, { backgroundColor: badgeColor }]}>
@@ -114,7 +117,7 @@ function SearchResultRow({
       </View>
     </Pressable>
   );
-}
+});
 
 const rowStyles = StyleSheet.create({
   row: {
@@ -351,7 +354,7 @@ export default function DiscoverScreen() {
 
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Image
+        <RNImage
           source={require("@/assets/logo/Logo.png")}
           style={styles.logo}
           resizeMode="contain"
@@ -360,7 +363,7 @@ export default function DiscoverScreen() {
           onPress={() => router.push("/notifications")}
           style={styles.notifBtn}
         >
-          <Image
+          <RNImage
             source={require("@/assets/Icons/Bell.png")}
             style={styles.notifIcon}
             resizeMode="contain"

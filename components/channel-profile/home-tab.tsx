@@ -12,7 +12,7 @@ import { ChannelDetail } from "@/types/api.types";
 import { formatDuration, formatRelativeTime } from "@/utils/formatters";
 import { fs, hp } from "@/utils/responsive";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   ImageSourcePropType,
   Modal,
@@ -34,6 +34,8 @@ type AnyVideo = {
   views?: number;
   publishedAt?: string;
   uploadDate?: string;
+  program?: { id: string; title: string };
+  programName?: string;
 };
 
 type LatestVideoItemProps = {
@@ -43,7 +45,7 @@ type LatestVideoItemProps = {
   onMenuPress: () => void;
 };
 
-function LatestVideoItem({ video, channelName, onPress, onMenuPress }: LatestVideoItemProps) {
+const LatestVideoItem = memo(function LatestVideoItem({ video, channelName, onPress, onMenuPress }: LatestVideoItemProps) {
   const storedDuration = video.durationSeconds ?? video.duration;
   const duration = useVideoDuration(video.playbackUrl, storedDuration);
   const thumbnailUrl = video.thumbnailUrl || video.thumbnail;
@@ -67,7 +69,7 @@ function LatestVideoItem({ video, channelName, onPress, onMenuPress }: LatestVid
       onMenuPress={onMenuPress}
     />
   );
-}
+});
 
 type FeaturedVideoItemProps = {
   video: AnyVideo;
@@ -76,7 +78,7 @@ type FeaturedVideoItemProps = {
   onMenuPress: () => void;
 };
 
-function FeaturedVideoItem({ video, channel, onPress, onMenuPress }: FeaturedVideoItemProps) {
+const FeaturedVideoItem = memo(function FeaturedVideoItem({ video, channel, onPress, onMenuPress }: FeaturedVideoItemProps) {
   const storedDuration = video.durationSeconds ?? video.duration;
   const duration = useVideoDuration(video.playbackUrl, storedDuration);
   const thumbnailUrl = video.thumbnailUrl || video.thumbnail;
@@ -88,6 +90,7 @@ function FeaturedVideoItem({ video, channel, onPress, onMenuPress }: FeaturedVid
           : (require("@/assets/images/Image-11.png") as ImageSourcePropType)
       }
       title={video.title}
+      programName={video.program?.title || video.programName}
       channelAvatar={
         (channel.logoUrl || channel.avatar)
           ? { uri: channel.logoUrl || channel.avatar }
@@ -106,7 +109,7 @@ function FeaturedVideoItem({ video, channel, onPress, onMenuPress }: FeaturedVid
       onMenuPress={onMenuPress}
     />
   );
-}
+});
 
 type HomeTabProps = {
   detail: ChannelDetail;

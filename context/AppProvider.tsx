@@ -3,6 +3,7 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { AuthProvider } from './AuthContext';
 import { QueryProvider } from './QueryProvider';
 import { ToastProvider } from './ToastContext';
+import { AlertProvider } from './AlertContext';
 
 export const STRIPE_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
@@ -26,7 +27,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       <StripeProvider publishableKey={STRIPE_KEY_FOR_PROVIDER}>
         <AuthProvider>
           <ToastProvider>
-            {children}
+            <AlertProvider>
+              {children}
+            </AlertProvider>
           </ToastProvider>
         </AuthProvider>
       </StripeProvider>

@@ -190,6 +190,7 @@ export default function ScheduleScreen() {
             title: slot.title,
             startTime: slot.startTime,
             endTime: slot.endTime,
+            channelSlug: selectedChannelSlug,
           });
 
           if (result.scheduled) {
@@ -245,6 +246,7 @@ export default function ScheduleScreen() {
         title: slot.title,
         startTime: slot.startTime,
         endTime: slot.endTime,
+        channelSlug: selectedChannelSlug,
       });
 
       setReminderState((prev) => ({

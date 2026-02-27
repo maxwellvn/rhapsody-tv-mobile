@@ -15,12 +15,13 @@ import { VideoCard } from "./video-card";
 
 const fallbackImage = require("@/assets/images/carusel-2.png");
 const NUM_COLUMNS = dimensions.isTablet ? 3 : 2;
-const PREVIEW_LIMIT = 10;
+const PREVIEW_LIMIT = 8;
 
 interface VideoItem {
   id: string;
   title: string;
   thumbnail: string | number;
+  programName?: string;
 }
 
 export function AllVideosSection() {
@@ -35,6 +36,7 @@ export function AllVideosSection() {
         id: video.id,
         title: video.title,
         thumbnail: video.thumbnailUrl || fallbackImage,
+        programName: video.program?.title,
       })),
     );
     return all.slice(0, PREVIEW_LIMIT);
@@ -46,6 +48,7 @@ export function AllVideosSection() {
         <VideoCard
           imageSource={item.thumbnail}
           title={item.title}
+          subtitle={item.programName}
           badgeLabel="Video"
           badgeColor="#0EA5E9"
           showBadge
