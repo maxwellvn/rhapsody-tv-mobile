@@ -401,7 +401,9 @@ export default function RootLayout() {
       }
 
       if (channelSlug) return ('/(tabs)' as Href);
-      return ('/notifications' as Href);
+      // Default to home so normal login / app open doesn't land on notifications
+      // (e.g. stale getLastNotificationResponseAsync from a previous session).
+      return ('/(tabs)' as Href);
     };
 
     const navigateFromResponse = async (

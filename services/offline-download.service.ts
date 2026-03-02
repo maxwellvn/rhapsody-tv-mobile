@@ -3,6 +3,9 @@ import * as FileSystem from "expo-file-system/legacy";
 
 const DOWNLOADS_DIR = `${FileSystem.documentDirectory}downloads/`;
 
+/** Max number of HLS segment downloads in parallel (increases download speed). */
+const HLS_DOWNLOAD_CONCURRENCY = 6;
+
 export type DownloadedVideo = {
   videoId: string;
   title: string;
@@ -187,59 +190,90 @@ class OfflineDownloadService {
     reportProgress(0.15);
     const mediaLines = mediaContent.split(/\r?\n/);
 
-    const references = mediaLines.filter((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        return false;
-      }
-      if (trimmed.startsWith("#")) {
-        return (
-          trimmed.startsWith("#EXT-X-KEY") || trimmed.startsWith("#EXT-X-MAP")
-        );
-      }
-      return true;
-    });
+    type DownloadItem = {
+      remoteUrl: string;
+      kind: "segment" | "key" | "map";
+      localName: string;
+      originalLine: string;
+      replaceInLine: string;
+    };
 
-    const total = Math.max(references.length, 1);
-    let completed = 0;
-    const localFileByRemoteUri = new Map<string, string>();
+    const downloadItems: DownloadItem[] = [];
     let segmentCount = 0;
     let keyCount = 0;
     let mapCount = 0;
 
-    const getOrDownloadLocalFile = async (
-      remoteUrl: string,
-      kind: "segment" | "key" | "map",
-    ) => {
-      // Check for cancellation before each segment download
+    for (const line of mediaLines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.startsWith("#EXT-X-KEY") || trimmed.startsWith("#EXT-X-MAP")) {
+        const uriMatch = line.match(/URI="([^"]+)"/);
+        if (!uriMatch) continue;
+        const remoteUri = this.resolveAbsoluteUrl(mediaUrl, uriMatch[1]);
+        const kind = trimmed.startsWith("#EXT-X-KEY") ? "key" : "map";
+        const fallbackExt = ".bin";
+        const ext = this.getExtensionFromUrl(remoteUri, fallbackExt);
+        const localName =
+          kind === "key" ? `key-${++keyCount}${ext}` : `map-${++mapCount}${ext}`;
+        downloadItems.push({
+          remoteUrl: remoteUri,
+          kind,
+          localName,
+          originalLine: line,
+          replaceInLine: uriMatch[1],
+        });
+        continue;
+      }
+      if (!trimmed.startsWith("#")) {
+        const remoteUri = this.resolveAbsoluteUrl(mediaUrl, trimmed);
+        const ext = this.getExtensionFromUrl(remoteUri, ".ts");
+        const localName = `segment-${++segmentCount}${ext}`;
+        downloadItems.push({
+          remoteUrl: remoteUri,
+          kind: "segment",
+          localName,
+          originalLine: line,
+          replaceInLine: trimmed,
+        });
+      }
+    }
+
+    const total = Math.max(downloadItems.length, 1);
+    const localFileByRemoteUri = new Map<string, string>();
+
+    const downloadOne = async (item: DownloadItem) => {
       if (this.cancelledIds.has(input.videoId)) {
         throw new Error("Download cancelled");
       }
-
-      const existing = localFileByRemoteUri.get(remoteUrl);
-      if (existing) {
-        return existing;
-      }
-
-      const fallbackExt = kind === "segment" ? ".ts" : ".bin";
-      const ext = this.getExtensionFromUrl(remoteUrl, fallbackExt);
-      const name =
-        kind === "segment"
-          ? `segment-${++segmentCount}${ext}`
-          : kind === "key"
-            ? `key-${++keyCount}${ext}`
-            : `map-${++mapCount}${ext}`;
-
-      const localUri = `${videoDir}${name}`;
-      await FileSystem.downloadAsync(remoteUrl, localUri);
-      localFileByRemoteUri.set(remoteUrl, name);
-
-      completed += 1;
-      reportProgress(0.15 + 0.8 * Math.min(completed / total, 1));
-
-      return name;
+      const localUri = `${videoDir}${item.localName}`;
+      await FileSystem.downloadAsync(item.remoteUrl, localUri);
+      localFileByRemoteUri.set(item.remoteUrl, item.localName);
     };
 
+    // Download keys and maps first (usually 1–2 files, sequential)
+    const keyMapItems = downloadItems.filter((i) => i.kind !== "segment");
+    for (const item of keyMapItems) {
+      await downloadOne(item);
+    }
+    let completed = keyMapItems.length;
+    reportProgress(0.15 + 0.8 * Math.min(completed / total, 1));
+
+    // Download segments in parallel batches for faster speed
+    const segmentItems = downloadItems.filter((i) => i.kind === "segment");
+    for (let i = 0; i < segmentItems.length; i += HLS_DOWNLOAD_CONCURRENCY) {
+      if (this.cancelledIds.has(input.videoId)) {
+        throw new Error("Download cancelled");
+      }
+      const batch = segmentItems.slice(
+        i,
+        i + HLS_DOWNLOAD_CONCURRENCY,
+      );
+      await Promise.all(batch.map((item) => downloadOne(item)));
+      completed += batch.length;
+      reportProgress(0.15 + 0.8 * Math.min(completed / total, 1));
+    }
+
+    // Build rewritten playlist
     const rewrittenLines: string[] = [];
     for (const line of mediaLines) {
       const trimmed = line.trim();
@@ -258,19 +292,15 @@ class OfflineDownloadService {
           rewrittenLines.push(line);
           continue;
         }
-
         const remoteUri = this.resolveAbsoluteUrl(mediaUrl, uriMatch[1]);
-        const localName = await getOrDownloadLocalFile(
-          remoteUri,
-          trimmed.startsWith("#EXT-X-KEY") ? "key" : "map",
-        );
+        const localName = localFileByRemoteUri.get(remoteUri) ?? uriMatch[1];
         rewrittenLines.push(line.replace(uriMatch[1], localName));
         continue;
       }
 
       if (!trimmed.startsWith("#")) {
         const remoteUri = this.resolveAbsoluteUrl(mediaUrl, trimmed);
-        const localName = await getOrDownloadLocalFile(remoteUri, "segment");
+        const localName = localFileByRemoteUri.get(remoteUri) ?? trimmed;
         rewrittenLines.push(localName);
         continue;
       }

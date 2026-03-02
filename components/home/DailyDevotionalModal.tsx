@@ -106,20 +106,43 @@ export function DailyDevotionalModal() {
     };
   }, []);
 
-  // Cleanup audio on unmount or close
+  // Stop and unload devotional audio (used on close and unmount)
+  const stopAndUnloadSound = useRef(async () => {
+    const sound = soundRef.current;
+    if (!sound) return;
+    soundRef.current = null;
+    setIsPlaying(false);
+    try {
+      const status = await sound.getStatusAsync();
+      if (status.isLoaded) {
+        await sound.stopAsync();
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      await sound.unloadAsync();
+    } catch {
+      // ignore
+    }
+  });
+
+  // When modal is hidden, always stop audio (safety net for any close path)
+  useEffect(() => {
+    if (!visible) {
+      stopAndUnloadSound.current();
+    }
+  }, [visible]);
+
+  // Cleanup audio on unmount (e.g. user navigates away while modal open)
   useEffect(() => {
     return () => {
-      soundRef.current?.unloadAsync().catch(() => {});
+      void stopAndUnloadSound.current();
     };
   }, []);
 
   const handleClose = async () => {
-    if (soundRef.current) {
-      await soundRef.current.stopAsync().catch(() => {});
-      await soundRef.current.unloadAsync().catch(() => {});
-      soundRef.current = null;
-      setIsPlaying(false);
-    }
+    await stopAndUnloadSound.current();
     setVisible(false);
   };
 
