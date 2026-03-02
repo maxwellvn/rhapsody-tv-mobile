@@ -48,6 +48,31 @@ async function openRhapsodyApp() {
 
 type DevotionalPayload = DevotionalData & { audioUrl: string; plainBody: string };
 
+function getAudioUrlCandidates(rawUrl?: string): string[] {
+  if (!rawUrl) return [];
+
+  const candidates: string[] = [rawUrl];
+
+  try {
+    const parsed = new URL(rawUrl);
+    const parts = parsed.pathname.split('/');
+    const fileName = parts[parts.length - 1];
+    const match = /^(\d{1,2})(\.[a-z0-9]+)$/i.exec(fileName);
+    if (match && match[1].length === 1) {
+      parts[parts.length - 1] = `${match[1].padStart(2, '0')}${match[2]}`;
+      parsed.pathname = parts.join('/');
+      const normalizedUrl = parsed.toString();
+      if (!candidates.includes(normalizedUrl)) {
+        candidates.push(normalizedUrl);
+      }
+    }
+  } catch {
+    // Keep original URL only.
+  }
+
+  return candidates;
+}
+
 export function DailyDevotionalModal() {
   const [visible, setVisible] = useState(false);
   const [devotional, setDevotional] = useState<DevotionalPayload | null>(null);
@@ -163,10 +188,27 @@ export function DailyDevotionalModal() {
     try {
       setAudioLoading(true);
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: devotional.audioUrl },
-        { shouldPlay: true },
-      );
+      const audioCandidates = getAudioUrlCandidates(devotional.audioUrl);
+      let sound: Audio.Sound | null = null;
+
+      for (const candidateUrl of audioCandidates) {
+        try {
+          const created = await Audio.Sound.createAsync(
+            { uri: candidateUrl },
+            { shouldPlay: true },
+          );
+          sound = created.sound;
+          break;
+        } catch {
+          // Try next candidate URL.
+        }
+      }
+
+      if (!sound) {
+        setIsPlaying(false);
+        return;
+      }
+
       soundRef.current = sound;
       setIsPlaying(true);
 
